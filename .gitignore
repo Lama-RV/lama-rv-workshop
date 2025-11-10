@@ -3,3 +3,6 @@
 *.elf
 *.o
 /result*
+comp/build/**/*
+.vscode/**/*
+.gdbinit

@@ -19,6 +19,10 @@
         nativeBuildInputs = with pkgs; [
           qemu
           lamac
+          gcc
+          clang-tools
+          cmake
+          gdb
         ];
 
       };

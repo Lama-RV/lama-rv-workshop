@@ -1,4 +1,4 @@
-LAMA_RV_BUILD_DIR=$(PWD)/comp-build
+LAMA_RV_BUILD_DIR=$(PWD)/comp/build
 LAMA_RV=$(LAMA_RV_BUILD_DIR)/lama-rv
 
 $(LAMA_RV_BUILD_DIR):
@@ -7,8 +7,8 @@ $(LAMA_RV_BUILD_DIR):
 build: lama-rv runtime-rv
 
 lama-rv: | $(LAMA_RV_BUILD_DIR)
-	# TODO[kmitkin, pgrinchenko]:
-	exit 1
+	cmake -DCMAKE_BUILD_TYPE=Debug -S comp -B $(LAMA_RV_BUILD_DIR)
+	cmake --build $(LAMA_RV_BUILD_DIR) --target lama-rv
 
 runtime-rv:
 	$(MAKE) -C runtime build
