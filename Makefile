@@ -1,38 +1,25 @@
-.PHONY: all regression
-.PHONY: clean test regression regression-expressions regression-all uninstall install build
+LAMA_RV_BUILD_DIR=$(PWD)/comp-build
+LAMA_RV=$(LAMA_RV_BUILD_DIR)/lama-rv
 
-INSTALL ?= install -v
-MKDIR ?= mkdir
-BUILDDIR = _build
+$(LAMA_RV_BUILD_DIR):
+	mkdir -p $(LAMA_RV_BUILD_DIR)
 
-.DEFAULT_GOAL := build
+build: lama-rv runtime-rv
 
-all: build test
+lama-rv: | $(LAMA_RV_BUILD_DIR)
+	# TODO[kmitkin, pgrinchenko]:
+	exit 1
 
-build:
-	dune b src runtime runtime32 stdlib tutorial
+runtime-rv:
+	$(MAKE) -C runtime build
 
-install: all
-	dune b @install --profile=release
-	dune    install --profile=release
-
-_build/default/Lama.install:
-	dune b @install
-
-uninstall: _build/default/Lama.install
-	$(RM) -r `opam var share`/Lama
-	dune uninstall
-
-
-regression-all: regression regression-expressions
-
-test: regression
-regression:
-	dune test regression stdlib/regression
-
-regression-expressions:
-	dune test regression_long
+regression: build
+	$(MAKE) -C regression check LAMA_RV_BACKEND=$(LAMA_RV)
 
 clean:
-	@dune clean
+	rm -rf $(LAMA_RV_BUILD_DIR)
+	$(MAKE) clean -C runtime
+	$(MAKE) clean -C regression
+	$(MAKE) clean -C performance
 
+.PHONY: all runtime-rv regression clean lama-rv
