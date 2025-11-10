@@ -1,3 +1,5 @@
 .devcontainer/**/*
 .direnv/**/*
 .envrc
+*.elf
+*.o
