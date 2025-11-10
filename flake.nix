@@ -13,7 +13,7 @@
       lamac = import ./nix/lamac.nix { inherit pkgs; };
       pkgsRV = pkgs.pkgsCross.riscv64;
     in {
-      devShell = pkgsRV.stdenv.mkDerivation {
+      devShell = pkgsRV.mkShell {
         name = "lama-rv";
 
         nativeBuildInputs = with pkgs; [
