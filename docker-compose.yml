@@ -1,0 +1,11 @@
+services:
+  lama-rv:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lama-rv
+    volumes:
+      - ./:/workspace
+    working_dir: /workspace
+    environment:
+      LAMA_RV_BACKEND: /workspace/lamac_rv_backend
