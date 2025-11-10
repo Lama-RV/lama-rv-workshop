@@ -17,6 +17,5 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /workspace
 COPY . .
-RUN chmod +x ./run_tests.sh
 
 CMD ["make", "-C", "regression", "check"]
