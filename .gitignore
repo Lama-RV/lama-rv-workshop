@@ -1,5 +1,8 @@
 .devcontainer/**/*
 .direnv/**/*
-.envrc
 *.elf
 *.o
+/result*
+comp/build/**/*
+.vscode/**/*
+.gdbinit

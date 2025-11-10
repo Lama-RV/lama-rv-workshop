@@ -1,0 +1,62 @@
+#pragma once
+#include <cassert>
+#include <cstddef>
+#include <string>
+namespace lama::rv {
+
+    class SymbolicStack {
+        public:
+        enum class LocType {
+            Register, Memory
+        };
+
+        struct Loc {
+            LocType type;
+            size_t number;
+        };
+    
+        constexpr static size_t regs[] = {9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 5, 6, 7, 28, 29};
+
+        int top;
+        SymbolicStack() : top(0) {}
+
+        Loc alloc() {
+            if (top >= sizeof(regs)) {
+                return Loc{LocType::Memory, top++ - sizeof(regs)};
+            } else {
+                return Loc{LocType::Register, regs[top++]};
+            }
+        }
+
+        void push(Loc loc) {
+            top++;
+        }
+
+        size_t spilled_count() {
+            return (top > sizeof(regs)) ? top - sizeof(regs) : 0;
+        }
+
+        Loc peek() {
+            if (top - 1 >= sizeof(regs)) {
+                return Loc{LocType::Memory, top - 1 - sizeof(regs)};
+            } else {
+                return Loc{LocType::Register, regs[top - 1]};
+            }
+        }
+
+        Loc pop() {
+            assert(top > 0 && "pop from empty symbolic stack");
+            if (--top >= sizeof(regs)) {
+                return Loc{LocType::Memory, top - sizeof(regs)};
+            } else {
+                return Loc{LocType::Register, regs[top]};
+            }
+        }
+    };
+
+    struct FrameInfo {
+        std::string function_name;
+        size_t locals_count;
+        size_t args_count;
+    };
+}
