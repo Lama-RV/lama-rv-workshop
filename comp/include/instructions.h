@@ -1,7 +1,10 @@
 #pragma once
+#include "code_buffer.h"
 #include "instruction.h"
 #include "opcode.h"
+#include "register.h"
 #include <cassert>
+#include <cstdint>
 
 namespace lama {
 
@@ -58,6 +61,21 @@ public:
     Const(int value) : _value(value) {}
 
     inline int value() { return _value; }
+
+    void emit_code(rv::Compiler *c) override {
+        auto loc = c->st.alloc(); 
+        switch (loc.type) {
+            case SymbolicLocationType::Memory: {
+                c->cb.emit_li(rv::Register::temp1(), _value);
+                c->cb.emit_sd(rv::Register::temp1(), rv::Register::fp(), -loc.number * rv::WORD_SIZE);
+                return;
+            }
+            case SymbolicLocationType::Register: {
+                c->cb.emit_li({(uint8_t) loc.number}, _value);
+                return;
+            }
+        }
+    }
 };
 
 LEAF(String, Instruction)
@@ -67,6 +85,11 @@ public:
     String(const char *str) : _str(str) {}
 
     inline const char* str() { return _str; }
+
+    void emit_code(rv::Compiler *c) override {
+        c->strs.emplace_back(_str);
+        // call BString
+    }
 };
 
 LEAF(SExpression, Instruction)
@@ -80,12 +103,26 @@ public:
 
     inline size_t size() { return _size; }
 };
-LEAF(StoreStack, Instruction) };
+LEAF(StoreStack, Instruction) 
+
+public:
+    void emit_code(rv::Compiler *c) override {
+        auto value_loc = c->st.pop();
+        auto ptr_loc = c->st.pop();
+        c->st.push(value_loc);
+        c->cb.symb_emit_sd(value_loc, ptr_loc, 0);
+    }
+};
 LEAF(StoreArray, Instruction) };
 LEAF(End, Instruction) };
 LEAF(Return, Instruction) };
 LEAF(Duplicate, Instruction) };
-LEAF(Drop, Instruction) };
+LEAF(Drop, Instruction) 
+    public:
+    void emit_code(rv::Compiler *c) override {
+        c->st.pop();
+    }
+};
 LEAF(Swap, Instruction) };
 LEAF(Elem, Instruction) };
 LEAF(Jump, Instruction) 
@@ -171,6 +208,21 @@ private:
 public:
     Binop(int op) : _op(op) {}
 
+    void emit_code(rv::Compiler *c) override {
+        auto first_loc = c->st.pop();
+        auto second_loc = c->st.pop();
+        auto dest_loc = c->st.alloc();
+
+#define EMIT_BINOP(code, symb) \
+        case code: { \
+            c->cb.symb_emit_##symb(dest_loc, first_loc, second_loc); \
+            break; \
+        }
+
+        switch (_op) {
+            BINOPS(EMIT_BINOP);
+        }
+    }
 };
 
 LEAF(Load, Instruction)
@@ -179,6 +231,21 @@ private:
 public:
     Load(LocationEntry loc) : _loc(loc) {}
 
+    void emit_code(rv::Compiler *c) override {
+        switch (_loc.kind) {
+
+        case Location_Global:
+            assert(_loc.index < c->globals_count && "global index out of bounds");
+            c->cb.symb_emit_ld(c->st.alloc(), {SymbolicLocationType::Register, rv::Register::gp().regno}, _loc.index * rv::WORD_SIZE);
+            return;
+    
+        case Location_Local:
+        case Location_Arg:
+        case Location_Captured:
+            assert(0 && "unimplemented");
+            break;
+        }
+    }
 };
 
 LEAF(LoadArray, Instruction)
@@ -195,6 +262,18 @@ private:
 public:
     Store(LocationEntry loc) : _loc(loc) {}
 
+    void emit_code(rv::Compiler *c) override {
+        auto value = c->st.peek();
+        switch (_loc.kind) {
+        case Location_Global:
+            c->cb.symb_emit_sd(value, {SymbolicLocationType::Register, rv::Register::gp().regno}, _loc.index * rv::WORD_SIZE);
+            return;
+        case Location_Local:
+        case Location_Arg:
+        case Location_Captured:
+            assert(0 && "unimplemented");
+        }
+    }
 };
 
 LEAF(PatternInst, Instruction)
