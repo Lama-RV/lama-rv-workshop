@@ -1,11 +1,24 @@
 services:
-  lama-rv:
+  lama-rv-test:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: lama-rv
+    container_name: lama-rv-test      
     volumes:
       - ./:/workspace
     working_dir: /workspace
     environment:
       LAMA_RV_BACKEND: /workspace/lamac_rv_backend
+    command: ["make", "regression"]
+  
+  lama-rv-benchmark:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lama-rv-benchmark  
+    volumes:
+      - ./:/workspace
+    working_dir: /workspace
+    environment:
+      LAMA_RV_BACKEND: /workspace/lamac_rv_backend
+    command: ["make", "-C", "performance", "check"]
