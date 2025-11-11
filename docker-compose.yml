@@ -1,4 +1,11 @@
 services:
+
+  # lama-rv:
+  #   build: .
+  #   entrypoint: ["/bin/sh"]
+  #   stdin_open: true
+  #   tty: true
+
   lama-rv-test:
     build:
       context: .
@@ -10,7 +17,9 @@ services:
     platform: linux/amd64
     environment:
       LAMA_RV_BACKEND: /workspace/comp/src/lama_rv.cpp
-    command: ["make", "regression"]
+    entrypoint: ["/bin/bash"]
+    stdin_open: true
+    tty: true
   
   # lama-rv-benchmark:
   #   build:
