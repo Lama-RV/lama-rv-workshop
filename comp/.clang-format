@@ -1,0 +1,27 @@
+BasedOnStyle: Chromium
+
+# 21st century
+ColumnLimit: 120
+# Unix
+InsertNewlineAtEOF: true
+
+# Indents
+IndentWidth: 2
+AccessModifierOffset: -2
+TabWidth: 2
+IndentCaseLabels: false
+
+# Constructors
+PackConstructorInitializers: Never
+BreakConstructorInitializers: BeforeComma
+
+# East const
+QualifierAlignment: Right
+ReferenceAlignment: Left
+PointerAlignment: Left
+DerivePointerAlignment: false
+
+# Misc
+AlignAfterOpenBracket: BlockIndent
+AllowShortFunctionsOnASingleLine: Empty
+IncludeBlocks: Preserve
