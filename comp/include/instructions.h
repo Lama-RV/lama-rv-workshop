@@ -154,11 +154,22 @@ public:
 };
 LEAF(ConditionalJump, Instruction)
 private:
-    size_t _offset;
+    size_t _target;
     bool _zero;
 
 public:
-    ConditionalJump(int offset, bool zero) : _offset(offset), _zero(zero) {}
+    ConditionalJump(int target, bool zero) : _target(target), _zero(zero) {}
+
+    void emit_code(rv::Compiler *c) const override {
+        auto const reg = c->cb.to_reg(c->st.pop(), rv::Register::temp1());
+        c->cb.emit_srai(reg, reg, 1);
+        c->cb.emit_cj(
+            _zero,
+            reg,
+            rv::Register::zero(),
+            c->cb.label_for_ip(_target)
+        );
+    }
 };
 LEAF(Begin, Instruction)
 private:

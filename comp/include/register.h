@@ -11,6 +11,10 @@ struct Register {
     size_t regno;
 
 public:
+
+    static constexpr Register zero() {
+        return {0};
+    }
     static constexpr Register temp1() {
         return {30};
     }

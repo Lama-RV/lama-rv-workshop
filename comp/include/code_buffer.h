@@ -23,7 +23,7 @@ namespace lama::rv {
         }
 
         static std::string label_for_ip(size_t ip){
-            return std::format(".lamabc_{:#x}", ip);
+            return std::format("lamabc_{:#x}", ip);
         }
 
         std::string dump_asm() {
@@ -190,6 +190,18 @@ namespace lama::rv {
 
         void emit_j(std::string_view target_label) {
             emit(std::format("j {}", target_label));
+        }
+
+        void emit_cj(bool on_eq, Register const& r1, Register const& r2, std::string_view target_label){
+            emit(
+                std::format(
+                    "{:s}\t{},\t{},\t{}",
+                    on_eq?"beq":"bne",
+                    r1,
+                    r2,
+                    target_label
+                )
+            );
         }
 
         inline Register to_reg(const SymbolicLocation& loc, const Register& temp) {
