@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y software-properties-common curl \
         make pkg-config \
         libc6-dev libncurses5-dev \
         ocaml dune qemu-user gcc-riscv64-linux-gnu diffutils bash git \
+        openssh-server \
     && ln -s /usr/bin/riscv64-linux-gnu-gcc /usr/local/bin/riscv64-unknown-linux-gnu-gcc \
     && rm -rf /var/lib/apt/lists/*
 
@@ -24,6 +25,13 @@ RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100 \
 ENV CC=/usr/bin/gcc-13
 ENV CXX=/usr/bin/g++-13
 
+RUN mkdir /var/run/sshd && \
+    echo 'root:root' | chpasswd && \
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    sed -i 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' /etc/pam.d/sshd
+
+EXPOSE 22
+
 WORKDIR /workspace
 COPY . .
 
@@ -33,4 +41,4 @@ RUN cmake -S comp -B comp-build \
     -DCMAKE_CXX_STANDARD=20 \
  && cmake --build comp-build
 
-CMD ["bash"]
+CMD ["/usr/sbin/sshd", "-D"]

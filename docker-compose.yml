@@ -1,23 +1,17 @@
 services:
-
-  # lama-rv:
-  #   build: .
-  #   entrypoint: ["/bin/sh"]
-  #   stdin_open: true
-  #   tty: true
-
-  lama-rv-test:
+  lama-rv:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: lama-rv-test      
+    container_name: lama-rv-test
     volumes:
       - ./:/workspace
     working_dir: /workspace
     platform: linux/amd64
     environment:
       LAMA_RV_BACKEND: /workspace/comp/src/lama_rv.cpp
-    entrypoint: ["/bin/bash"]
+    ports:
+      - "2200:22"   
     stdin_open: true
     tty: true
   

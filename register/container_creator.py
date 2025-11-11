@@ -20,7 +20,7 @@ def create_container(
     subprocess.run([
         "docker", "run", "-d",
         "--name", container_name,
-        "-v", f"{user_dir}:/workspace",
+        "-v", f"{user_dir.resolve()}:/workspace",
         "-p", f"{ssh_port}:22",
         base_image
     ], check=True)

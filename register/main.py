@@ -5,7 +5,7 @@ from gen_password import gen_password
 from gen_ssh import gen_ssh_keys
 from container_creator import create_container
 
-BASE_IMAGE = "lama-rv-env:latest"
+BASE_IMAGE = "lama-rv-workshop-lama-rv:latest"
 ACCESS_FILE = "access.csv"
 CONTAINERS_DIR = Path("./containers")
 CSV_FILE = "participants.csv"
