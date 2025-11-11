@@ -1,9 +1,9 @@
 #pragma once
 #include "code_buffer.h"
 #include "instruction.h"
+#include "cpp23.h"
 #include "opcode.h"
 #include "register.h"
-#include <cassert>
 #include <cstdint>
 #include <ranges>
 
@@ -47,10 +47,12 @@ namespace lama {
   class class_name: public super_class_name {    \
 
 
-#define LEAF(class_name, super_class_name)       \
-  BASE(class_name, super_class_name)             \
-   public:                                       \
-    virtual const char* name() const             { return #class_name; }       \
+#define LEAF(class_name, super_class_name) \
+  BASE(class_name, super_class_name)       \
+   public:                                 \
+    const char* name() const override {    \
+        return #class_name;                \
+    }
 
 using SymbolicLocationType = rv::SymbolicStack::LocType;
 
@@ -63,7 +65,7 @@ public:
 
     inline int value() { return _value; }
 
-    void emit_code(rv::Compiler *c) override {
+    void emit_code(rv::Compiler *c) const override {
         auto loc = c->st.alloc();
         switch (loc.type) {
             case SymbolicLocationType::Memory: {
@@ -87,7 +89,7 @@ public:
 
     inline const char* str() { return _str; }
 
-    void emit_code(rv::Compiler *c) override {
+    void emit_code(rv::Compiler *c) const override {
         c->strs.emplace_back(_str);
         // call BString
     }
@@ -104,10 +106,10 @@ public:
 
     inline size_t size() { return _size; }
 };
-LEAF(StoreStack, Instruction)
 
+LEAF(StoreStack, Instruction)
 public:
-    void emit_code(rv::Compiler *c) override {
+    void emit_code(rv::Compiler *c) const override {
         auto value_loc = c->st.pop();
         auto ptr_loc = c->st.pop();
         c->st.push(value_loc);
@@ -116,8 +118,8 @@ public:
 };
 LEAF(StoreArray, Instruction) };
 LEAF(End, Instruction)
-    void emit_code(rv::Compiler *c) override {
-        assert(c->current_frame.has_value() && "no current frame in End instruction");
+    void emit_code(rv::Compiler *c) const override {
+        DCHECK(c->current_frame.has_value()) << "no current frame in End instruction";
         size_t _locc = c->current_frame->locals_count;
         c->cb.symb_emit_mv(rv::Register::arg(0), c->st.pop());
         // Restore sp
@@ -134,7 +136,7 @@ LEAF(Return, Instruction) };
 LEAF(Duplicate, Instruction) };
 LEAF(Drop, Instruction)
     public:
-    void emit_code(rv::Compiler *c) override {
+    void emit_code(rv::Compiler *c) const override {
         c->st.pop();
     }
 };
@@ -162,7 +164,7 @@ private:
 public:
     Begin(const std::string& function_name, int argc, int locc) : _function_name(function_name), _argc(argc), _locc(locc) {}
 
-    void emit_code(rv::Compiler *c) override {
+    void emit_code(rv::Compiler *c) const override {
         c->cb.emit_label(_function_name);
         if (_function_name == "main") {
             c->cb.emit(c->premain());
@@ -202,7 +204,7 @@ private:
 public:
     Call(std::string function_name, int argc) : _function_name(function_name), _argc(argc) {}
 
-    void emit_code(rv::Compiler *c) override {
+    void emit_code(rv::Compiler *c) const override {
         size_t alignment = (c->current_frame->locals_count + c->st.spilled_count() + _argc) & 1;
         // Skip spilled registers
         c->cb.emit_comment(std::format("Skip spilled registers {}", c->st.spilled_count()));
@@ -211,12 +213,12 @@ public:
         c->cb.emit_sd(rv::Register::ra(), rv::Register::sp(), -rv::WORD_SIZE);
         c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -rv::WORD_SIZE);
         // Save temp registers
-        rv::Register::temp_apply([c](const rv::Register& r, int _) {
+        rv::Register::temp_apply([c](const rv::Register& r, int) {
             c->cb.emit_sd(r, rv::Register::sp(), -rv::WORD_SIZE);
             c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -rv::WORD_SIZE);
         });
         // Save arguments
-        rv::Register::arg_apply([c](const rv::Register& r, int _) {
+        rv::Register::arg_apply([c](const rv::Register& r, int) {
             c->cb.emit_sd(r, rv::Register::sp(), -rv::WORD_SIZE);
             c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -rv::WORD_SIZE);
         });
@@ -228,7 +230,7 @@ public:
             c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -rv::WORD_SIZE);
         }
         // Store extra arguments on stack
-        for (auto i : std::views::iota(0ul, _argc) | std::views::drop(8) | std::views::reverse) {
+        for (auto _ : std::views::iota(0ul, _argc) | std::views::drop(8) | std::views::reverse) {
             c->cb.emit_sd(c->cb.to_reg(c->st.pop(), rv::Register::temp1()), rv::Register::sp(), -rv::WORD_SIZE);
             c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -rv::WORD_SIZE);
         }
@@ -285,6 +287,9 @@ private:
     size_t _line;
 public:
     Line(int line) : _line(line) {}
+    void emit_code(rv::Compiler *) const override {
+        // do nothing
+    }
 };
 
 LEAF(Binop, Instruction)
@@ -293,7 +298,7 @@ private:
 public:
     Binop(int op) : _op(op) {}
 
-    void emit_code(rv::Compiler *c) override {
+    void emit_code(rv::Compiler *c) const override {
         auto second_loc = c->st.pop();
         auto first_loc = c->st.pop();
         auto dest_loc = c->st.alloc();
@@ -320,18 +325,18 @@ private:
 public:
     Load(LocationEntry loc) : _loc(loc) {}
 
-    void emit_code(rv::Compiler *c) override {
+    void emit_code(rv::Compiler *c) const override {
         switch (_loc.kind) {
 
         case Location_Global:
-            assert(_loc.index < c->globals_count && "global index out of bounds");
+            DCHECK_LT(_loc.index , c->globals_count) << "global index out of bounds";
             c->cb.symb_emit_ld(c->st.alloc(), {SymbolicLocationType::Register, rv::Register::gp().regno}, _loc.index * rv::WORD_SIZE);
             return;
 
         case Location_Local:
         case Location_Arg:
         case Location_Captured:
-            assert(0 && "unimplemented");
+            LOG(FATAL) << std::format("Unimplemented (loc.kind = {:d})", to_underlying(_loc.kind));
             break;
         }
     }
@@ -351,7 +356,7 @@ private:
 public:
     Store(LocationEntry loc) : _loc(loc) {}
 
-    void emit_code(rv::Compiler *c) override {
+    void emit_code(rv::Compiler *c) const override {
         auto value = c->st.peek();
         switch (_loc.kind) {
         case Location_Global:
@@ -360,7 +365,7 @@ public:
         case Location_Local:
         case Location_Arg:
         case Location_Captured:
-            assert(0 && "unimplemented");
+            LOG(FATAL) << std::format("Unimplemented (loc.kind = {:d})", to_underlying(_loc.kind));
         }
     }
 };
@@ -374,12 +379,12 @@ public:
 
 LEAF(BuiltinRead, Instruction)
 public:
-    void emit_code(rv::Compiler *c) override {
+    void emit_code(rv::Compiler *c) const override {
         Call("Lread", 0).emit_code(c);
     }
 };
 LEAF(BuiltinWrite, Instruction)
-    void emit_code(rv::Compiler *c) override {
+    void emit_code(rv::Compiler *c) const override {
         Call("Lwrite", 1).emit_code(c);
     }
 };

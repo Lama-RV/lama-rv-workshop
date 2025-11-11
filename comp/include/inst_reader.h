@@ -1,10 +1,10 @@
 #pragma once
 
 #include "bytefile.h"
-#include "error.h"
-#include "opcode.h"
 #include "instructions.h"
+#include "opcode.h"
 
+#include <glog/logging.h>
 #include <cstring>
 #include <memory>
 #include <ranges>
@@ -15,15 +15,18 @@ namespace lama {
 
 class InstReader {
 public:
-    InstReader(const bytefile *file) : file(file), ip(file->code_ptr), function_index{} {
+    InstReader(bytefile const* file)
+        : file(file)
+        , ip(file->code_ptr)
+        , function_index{} {
         for (auto i : std::views::iota(0, file->public_symbols_number)) {
             function_names[get_public_offset(file, i)] = get_public_name(file, i);
         }
     }
 
 private:
-    const bytefile *file;
-    const char *ip;
+    bytefile const* file;
+    char const* ip;
     int function_index;
     std::unordered_map<int, std::string> function_names;
 
@@ -32,10 +35,8 @@ private:
     }
 
     inline void assert_can_read(int bytes) {
-        ASSERT(file->code_ptr <= ip, 1,
-               "ip is out of code section");
-        ASSERT(ip + bytes <= (const char *)file + file->size, 1,
-               "ip is out of code section");
+        CHECK_LE(file->code_ptr, ip) << "ip is out of code section";
+        CHECK_LE(ip + bytes, (char const*)file + file->size) << "ip is out of code section";
     }
 
     inline char read_byte() {
@@ -51,21 +52,19 @@ private:
         return result;
     }
 
-    inline const char *read_string() {
+    inline char const* read_string() {
         return get_string(file, read_int());
     }
 
     inline LocationEntry read_loc() {
         Location kind = (Location)read_byte();
         int index = read_int();
-        return LocationEntry{.kind=kind, .index=index};
+        return LocationEntry{.kind = kind, .index = index};
     }
 
 public:
     inline std::unique_ptr<Instruction> read_inst() {
-        unsigned char x = read_byte(),
-                      h = (x & 0xF0) >> 4,
-                      l = x & 0x0F;
+        unsigned char x = read_byte(), h = (x & 0xF0) >> 4, l = x & 0x0F;
 
         switch (x) {
         case Opcode_Const: {
@@ -125,9 +124,12 @@ public:
         }
 
         case Opcode_Begin: {
-            // fprintf(stderr, "Reading function %s at offset %d, pub_offset: %d\n", get_public_name(file, function_index), get_offset(), get_public_offset(file, function_index));
-            assert((get_public_offset(file, function_index) == get_offset() - 1) && "function offset mismatch");
-            return std::make_unique<Begin>(std::string{get_public_name(file, function_index++)}, read_int(), read_int());
+            // fprintf(stderr, "Reading function %s at offset %d, pub_offset: %d\n", get_public_name(file,
+            // function_index), get_offset(), get_public_offset(file, function_index));
+            DCHECK_EQ(get_public_offset(file, function_index), get_offset() - 1) << "function offset mismatch";
+            return std::make_unique<Begin>(
+                std::string{get_public_name(file, function_index++)}, read_int(), read_int()
+            );
             break;
         }
 
@@ -153,7 +155,7 @@ public:
         }
 
         case Opcode_Call: {
-            assert(function_names.find(read_int()) != function_names.end() && "unknown function called");
+            DCHECK(function_names.contains(read_int())) << "unknown function called";
             return std::make_unique<Call>(function_names[read_int()], read_int());
         }
 
@@ -181,13 +183,13 @@ public:
             }
 
             case HOpcode_Ld: {
-                return std::make_unique<Load>(LocationEntry{.kind=static_cast<Location>(l), .index=read_int()});
+                return std::make_unique<Load>(LocationEntry{.kind = static_cast<Location>(l), .index = read_int()});
             }
             case HOpcode_LdA: {
                 return std::make_unique<LoadArray>(read_int(), l);
             }
             case HOpcode_St: {
-                return std::make_unique<Store>(LocationEntry{.kind=static_cast<Location>(l), .index=read_int()});
+                return std::make_unique<Store>(LocationEntry{.kind = static_cast<Location>(l), .index = read_int()});
             }
 
             case HOpcode_Patt: {
@@ -212,7 +214,7 @@ public:
                     return std::make_unique<BuiltinArray>();
                 }
                 default:
-                    FAIL(1, "Unknown LCall");
+                    LOG(FATAL) << std::format("Unknown LCall {:d}", l);
                 }
                 break;
             }
@@ -220,11 +222,10 @@ public:
                 return nullptr;
             }
             default:
-                FAIL(1, "Unknown opcode %d\n", x);
+                LOG(FATAL) << std::format("Unknown opcode {:d}", x);
             }
         }
-
     }
 };
 
-}
+}  // namespace lama

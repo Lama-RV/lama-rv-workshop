@@ -1,5 +1,4 @@
-#ifndef OPCODE_H
-#define OPCODE_H
+#pragma once
 
 enum HOpcode {
     HOpcode_Binop = 0,
@@ -123,5 +122,3 @@ struct LocationEntry {
 
 #define SINGLE(code) ((unsigned char)(code))
 #define COMPOSED(hi, lo) ((unsigned char)(((hi) << 4) | (lo)))
-
-#endif // OPCODE_H

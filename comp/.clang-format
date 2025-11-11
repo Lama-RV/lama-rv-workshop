@@ -6,9 +6,9 @@ ColumnLimit: 120
 InsertNewlineAtEOF: true
 
 # Indents
-IndentWidth: 2
-AccessModifierOffset: -2
-TabWidth: 2
+IndentWidth: 4
+AccessModifierOffset: -4
+TabWidth: 4
 IndentCaseLabels: false
 
 # Constructors

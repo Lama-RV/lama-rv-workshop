@@ -10,7 +10,7 @@ set(CMAKE_CXX_COMPILER g++)
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithAssert" CACHE STRING "" FORCE)
 
 # Add more diagnostics
-add_compile_options(-Wall -Wextra -Wpedantic -Wswitch -Wswitch-enum)
+add_compile_options(-Wall -Wextra -Wpedantic -Wswitch -Wswitch-enum -Wno-sign-compare)
 
 # Disable diagnostic limit
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -67,16 +67,17 @@ else ()
 endif ()
 
 # Dependencies
-find_package(glog 0.7.1 REQUIRED)
+find_package(glog 0.7 REQUIRED)
 find_package(fmt 0.11 REQUIRED)
 
-set(SOURCE_LIST
-    src/bytefile.cpp
-    src/lama_rv.cpp)
+add_library(bytefile src/bytefile.cpp)
+target_include_directories(bytefile PUBLIC include)
+target_link_libraries(bytefile glog::glog)
 
-add_executable(lama-rv ${SOURCE_LIST})
+add_executable(lama-rv src/lama_rv.cpp)
 target_include_directories(lama-rv PUBLIC include)
+target_link_libraries(lama-rv bytefile glog::glog)
 
 add_executable(disasm src/disasm.cpp src/bytefile.cpp)
 target_include_directories(disasm PUBLIC include)
-target_link_libraries(disasm fmt glog::glog)
+target_link_libraries(disasm bytefile glog::glog fmt)
