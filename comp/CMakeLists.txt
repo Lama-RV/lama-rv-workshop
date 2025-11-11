@@ -66,6 +66,10 @@ else ()
     message(STATUS "LTO enabled")
 endif ()
 
+# Dependencies
+find_package(glog 0.7.1 REQUIRED)
+find_package(fmt 0.11 REQUIRED)
+
 set(SOURCE_LIST
     src/bytefile.cpp
     src/lama_rv.cpp)
