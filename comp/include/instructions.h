@@ -294,8 +294,8 @@ public:
     Binop(int op) : _op(op) {}
 
     void emit_code(rv::Compiler *c) override {
-        auto first_loc = c->st.pop();
         auto second_loc = c->st.pop();
+        auto first_loc = c->st.pop();
         auto dest_loc = c->st.alloc();
 
         c->cb.symb_emit_srai(first_loc, first_loc, 1);

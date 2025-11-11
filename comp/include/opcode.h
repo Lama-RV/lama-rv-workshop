@@ -84,15 +84,15 @@ enum Pattern {
     MACRO(Binop_Sub, sub)         \
     MACRO(Binop_Mul, mul)         \
     MACRO(Binop_Div, div)         \
-    MACRO(Binop_LessEqual, slt)   \
+    MACRO(Binop_LessThan, slt)    \
+    MACRO(Binop_LessEqual, sle)   \
     MACRO(Binop_And, and)         \
     MACRO(Binop_Or, or)           \
-    // MACRO(Binop_GreaterThan, >)   \
-    MACRO(Binop_GreaterEqual, >=) \
-    MACRO(Binop_Equal, ==)        \
-    MACRO(Binop_NotEqual, !=)     \
-    MACRO(Binop_Rem, %)           \
-    MACRO(Binop_LessThan, <) 
+    MACRO(Binop_Rem, rem)         \
+    MACRO(Binop_GreaterThan, sgt) \
+    MACRO(Binop_GreaterEqual, sge)\
+    MACRO(Binop_Equal, eq)        \
+    MACRO(Binop_NotEqual, neq)
 
 #define LOCATIONS(hi, MACRO)        \
     MACRO(hi, Location_Global, "G") \

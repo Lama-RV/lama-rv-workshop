@@ -59,9 +59,66 @@ namespace lama::rv {
                 symb_emit_u_type(#rv_insn, dst, imm); \
             }
        
+        #define PSEUDO_TYPE(rv_insn) \
+            void emit_ ## rv_insn (const Register& dst, const Register& src) { \
+                emit_pseudo_type(#rv_insn, dst, src); \
+            } \
+            void symb_emit_ ## rv_insn (const SymbolicLocation& dst, const SymbolicLocation& src) { \
+                symb_emit_pseudo_type(#rv_insn, dst, src); \
+            }
+
+
         R_TYPE(add);
         R_TYPE(sub);
-        R_TYPE(slt); // set less than (1 if src1 < src2, 0 otherwise)
+        R_TYPE(slt);
+        R_TYPE(sgt);
+
+        void emit_eq(const Register &dst, const Register &src1, const Register &src2) {
+            emit_sub(dst, src2, src1);
+            emit_seqz(dst, dst);
+        }
+
+        void symb_emit_eq(const SymbolicLocation &dst, const SymbolicLocation &src1,
+                        const SymbolicLocation &src2) {
+            symb_emit_sub(dst, src2, src1);
+            symb_emit_seqz(dst, dst);
+        }
+
+        void emit_sle(const Register &dst, const Register &src1, const Register &src2) {
+            emit_sgt(dst, src1, src2);
+            emit_xori(dst, dst, 1);
+        }
+
+        void symb_emit_sle(const SymbolicLocation &dst, const SymbolicLocation &src1,
+                        const SymbolicLocation &src2) {
+            symb_emit_sgt(dst, src1, src2);
+            symb_emit_xori(dst, dst, 1);
+        }
+
+        // sltu rd, x0, rs 
+        void emit_neq(const Register &dst, const Register &src1, const Register &src2) {
+            emit_sub(dst, src2, src1);
+            emit_snez(dst, dst);
+        }
+
+        void symb_emit_neq(const SymbolicLocation &dst, const SymbolicLocation &src1,
+                        const SymbolicLocation &src2) {
+            symb_emit_sub(dst, src2, src1);
+            symb_emit_snez(dst, dst);
+        }
+
+        void emit_sge(const Register &dst, const Register &src1, const Register &src2) {
+            emit_slt(dst, src1, src2);
+            emit_xori(dst, dst, 1);
+        }
+
+        void symb_emit_sge(const SymbolicLocation &dst, const SymbolicLocation &src1,
+                        const SymbolicLocation &src2) {
+            symb_emit_slt(dst, src1, src2);
+            symb_emit_xori(dst, dst, 1);
+        }
+
+        
         R_TYPE(or);
         R_TYPE(and);
         R_TYPE(srl); // logical
@@ -69,6 +126,7 @@ namespace lama::rv {
         R_TYPE(sll);
         R_TYPE(mul);
         R_TYPE(div);
+        R_TYPE(rem);
 
         I_TYPE(addi);
         I_TYPE(slti);
@@ -82,6 +140,9 @@ namespace lama::rv {
         S_TYPE(sd);
 
         U_TYPE(li);
+
+        PSEUDO_TYPE(seqz);
+        PSEUDO_TYPE(snez);
 
         void emit_mv(const Register& dst, const Register& src) {
             emit_addi(dst, src, 0);
@@ -124,6 +185,10 @@ namespace lama::rv {
         }
 
         private:
+
+        void emit_pseudo_type(const std::string& insn, const Register& dst, const Register& src) {
+            emit(std::format("{}\t{},\t{}", insn, dst, src));
+        }
       
         void emit_r_type(const std::string& insn, const Register& dst, const Register& src1, const Register& src2) {
             emit(std::format("{}\t{},\t{},\t{}", insn, dst, src1, src2)); 
@@ -171,6 +236,12 @@ namespace lama::rv {
             auto dst_reg = to_reg(dst, rv::Register::temp1());
             auto base_reg = to_reg(base, rv::Register::temp2());
             emit_s_type(insn, dst_reg, base_reg, off);
+        }
+
+        void symb_emit_pseudo_type(const std::string& insn, const SymbolicLocation& dst, const SymbolicLocation& src) {
+            auto dst_reg = to_reg(dst, rv::Register::temp1());
+            auto src_reg = to_reg(src, rv::Register::temp2());
+            emit_pseudo_type(insn, dst_reg, src_reg);
         }
     };
     

@@ -10,6 +10,10 @@ lama-rv: | $(LAMA_RV_BUILD_DIR)
 	cmake -DCMAKE_BUILD_TYPE=Debug -S comp -B $(LAMA_RV_BUILD_DIR)
 	cmake --build $(LAMA_RV_BUILD_DIR) --target lama-rv
 
+disasm: | $(LAMA_RV_BUILD_DIR)
+	cmake -DCMAKE_BUILD_TYPE=Debug -S comp -B $(LAMA_RV_BUILD_DIR)
+	cmake --build $(LAMA_RV_BUILD_DIR) --target disasm
+
 runtime-rv:
 	$(MAKE) -C runtime build
 
