@@ -15,4 +15,4 @@ $(TESTS): %: %.S ../runtime/runtime.a
 ../runtime/runtime.a:
 	+make -C ../runtime
 clean:
-	rm -rf *.bc *.elf *.S
+	rm -rf *.bc *.elf
