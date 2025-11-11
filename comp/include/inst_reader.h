@@ -5,6 +5,7 @@
 #include "opcode.h"
 #include "instructions.h"
 
+#include <cstring>
 #include <memory>
 #include <ranges>
 #include <unordered_map>
@@ -39,14 +40,15 @@ private:
 
     inline char read_byte() {
         assert_can_read(1);
-        ip += sizeof(char);
-        return *(ip - sizeof(char));
+        return (*(ip++));
     }
 
     inline int read_int() {
         assert_can_read(4);
+        int result;
+        std::memcpy(&result, ip, sizeof(int));
         ip += sizeof(int);
-        return *(int *)(ip - sizeof(int));
+        return result;
     }
 
     inline const char *read_string() {

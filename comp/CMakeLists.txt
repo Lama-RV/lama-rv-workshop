@@ -3,23 +3,70 @@ cmake_minimum_required(VERSION 3.25)
 project(comp)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_C_COMPILER gcc)
 set(CMAKE_CXX_COMPILER g++)
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithAssert" CACHE STRING "" FORCE)
 
-set(CMAKE_C_FLAGS_RELWITHASSERT "${CMAKE_C_FLAGS_RELEASE} -UNDEBUG" CACHE STRING "" FORCE)
-set(CMAKE_CXX_FLAGS_RELWITHASSERT "${CMAKE_CXX_FLAGS_RELEASE} -UNDEBUG" CACHE STRING "" FORCE)
+# Add more diagnostics
+add_compile_options(-Wall -Wextra -Wpedantic -Wswitch -Wswitch-enum)
 
-set(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG -g -ggdb3 -O0 -fno-omit-frame-pointer")
-set(CMAKE_WARN_FLAGS -Wall -Wextra -Werror -pedantic-errors)
+# Disable diagnostic limit
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    add_compile_options(-ferror-limit=0)
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    add_compile_options(-fmax-errors=0)
+endif ()
 
-if(CMAKE_BUILD_TYPE MATCHES Debug)
-    message(STATUS "Debug mode ON")
-    set(CMAKE_ASAN_FLAGS -fsanitize=address -fsanitize=undefined -DADDRESS_SANITIZER)
-endif(CMAKE_BUILD_TYPE MATCHES Debug)
+# Debug flags
+if (CMAKE_BUILD_TYPE MATCHES Debug)
+    add_compile_options(-DDEBUG -g -ggdb3 -O0 -fno-omit-frame-pointer)
+endif ()
 
-set(SOURCE_LIST 
+# Preserve NDEBUG in RelWithAssert
+if (CMAKE_BUILD_TYPE MATCHES RelWithAssert)
+    add_compile_options(-UNDEBUG)
+endif ()
+
+# Enable assertions in std (both libstdc++ & libc++) for Debug and RelWithAssert builds
+if (CMAKE_BUILD_TYPE MATCHES Debug|RelWithAssert)
+    if (NOT (MSVC))
+        add_definitions("-D_GLIBCXX_DEBUG")
+        add_definitions("-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG")
+
+        include(CheckSourceCompiles)
+
+        check_source_compiles(CXX "
+#define _LIBCPP_ENABLE_ASSERTIONS 1
+#include <iostream>
+int main() { std::cout << \"Hello, world!\" << std::endl; }
+" OK_WITH_OLD_LIBCPP_FLAG)
+        if (OK_WITH_OLD_LIBCPP_FLAG)
+            add_definitions("-D_LIBCPP_ENABLE_ASSERTIONS=1")
+        endif ()
+    endif ()
+endif ()
+
+# Enable sanitizers for Debug builds
+include(cmake/sanitizers.cmake)
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_sanitizers()
+endif ()
+
+# Enable LTO for non-Debug builds (if supported)
+include(CheckIPOSupported)
+check_ipo_supported(RESULT lto_supported OUTPUT error)
+if (NOT (lto_supported))
+    message(STATUS "LTO not supported: <${error}>")
+elseif (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    message(STATUS "LTO supported, but not enabled (Debug build)")
+else ()
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+    message(STATUS "LTO enabled")
+endif ()
+
+set(SOURCE_LIST
     src/bytefile.cpp
     src/lama_rv.cpp)
 
