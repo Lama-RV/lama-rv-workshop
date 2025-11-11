@@ -24,15 +24,15 @@ public:
         }
     }
 
+    inline int get_offset() const noexcept {
+        return (int)(ip - file->code_ptr);
+    }
+
 private:
     bytefile const* file;
     char const* ip;
     int function_index;
     std::unordered_map<int, std::string> function_names;
-
-    inline int get_offset() {
-        return (int)(ip - file->code_ptr);
-    }
 
     inline void assert_can_read(int bytes) {
         CHECK_LE(file->code_ptr, ip) << "ip is out of code section";

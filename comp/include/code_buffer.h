@@ -1,5 +1,8 @@
 #pragma once
+#include <cstddef>
+#include <format>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "symb_stack.h"
@@ -9,8 +12,19 @@ namespace lama::rv {
     class CodeBuffer {
         private:
         std::vector<std::string> _code;
+        size_t ip_;
         public:
         CodeBuffer() = default;
+
+        size_t get_ip() const noexcept{ return ip_; }
+        void set_ip(size_t ip) {
+            ip_=ip;
+            emit_label(label_for_ip(ip));
+        }
+
+        static std::string label_for_ip(size_t ip){
+            return std::format(".lamabc_{:#x}", ip);
+        }
 
         std::string dump_asm() {
             std::string s;
@@ -172,6 +186,10 @@ namespace lama::rv {
 
         void emit_comment(const std::string& comment) {
             emit(std::format("# {}", comment));
+        }
+
+        void emit_j(std::string_view target_label) {
+            emit(std::format("j {}", target_label));
         }
 
         inline Register to_reg(const SymbolicLocation& loc, const Register& temp) {

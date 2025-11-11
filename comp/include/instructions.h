@@ -144,10 +144,13 @@ LEAF(Swap, Instruction) };
 LEAF(Elem, Instruction) };
 LEAF(Jump, Instruction)
 private:
-    size_t _offset;
+    size_t _target;
 
 public:
-    Jump(int offset) : _offset(offset) {}
+    Jump(int target) : _target(target) {}
+    void emit_code(rv::Compiler *c) const override {
+        c->cb.emit_j(c->cb.label_for_ip(_target));
+    }
 };
 LEAF(ConditionalJump, Instruction)
 private:
@@ -336,7 +339,7 @@ public:
         case Location_Local:
         case Location_Arg:
         case Location_Captured:
-            LOG(FATAL) << std::format("Unimplemented (loc.kind = {:d})", to_underlying(_loc.kind));
+            LOG(FATAL) << std::format("Unimplemented {:s} (loc.kind = {:d})", name(), to_underlying(_loc.kind));
             break;
         }
     }
@@ -365,7 +368,7 @@ public:
         case Location_Local:
         case Location_Arg:
         case Location_Captured:
-            LOG(FATAL) << std::format("Unimplemented (loc.kind = {:d})", to_underlying(_loc.kind));
+            LOG(FATAL) << std::format("Unimplemented {:s} (loc.kind = {:d})", name(), to_underlying(_loc.kind));
         }
     }
 };

@@ -1,4 +1,5 @@
 #include <glog/logging.h>
+#include <format>
 #include <iostream>
 #include "bytefile.h"
 #include "inst_reader.h"
@@ -14,7 +15,13 @@ int main(int argc, char const* argv[]) {
 
     lama::rv::Compiler c{(size_t)file->global_area_size};
 
-    for (auto inst = reader.read_inst(); inst; inst = reader.read_inst()) {
+    while (true) {
+        auto const offset = reader.get_offset();
+        c.cb.set_ip(offset);
+        auto const inst = reader.read_inst();
+        if (!inst){
+            break;
+        }
         inst->emit_code(&c);
     }
 
