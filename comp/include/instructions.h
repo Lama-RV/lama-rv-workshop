@@ -5,6 +5,7 @@
 #include "register.h"
 #include <cassert>
 #include <cstdint>
+#include <ranges>
 
 namespace lama {
 
@@ -114,7 +115,21 @@ public:
     }
 };
 LEAF(StoreArray, Instruction) };
-LEAF(End, Instruction) };
+LEAF(End, Instruction) 
+    void emit_code(rv::Compiler *c) override {
+        assert(c->current_frame.has_value() && "no current frame in End instruction");
+        size_t _locc = c->current_frame->locals_count;
+        c->cb.symb_emit_mv(rv::Register::arg(0), c->st.pop());
+        // Restore sp
+        c->cb.emit_mv(rv::Register::sp(), rv::Register::fp());
+        // Restore callee-saved registers (fp is included)
+        rv::Register::saved_apply([c, _locc](const rv::Register& r, int i) {
+            c->cb.emit_ld(r, rv::Register::sp(), -(i + _locc) * rv::WORD_SIZE);
+        });
+        // Return
+        c->cb.emit_ret();
+    }
+};
 LEAF(Return, Instruction) };
 LEAF(Duplicate, Instruction) };
 LEAF(Drop, Instruction) 
@@ -147,6 +162,22 @@ private:
 public:
     Begin(const std::string& function_name, int argc, int locc) : _function_name(function_name), _argc(argc), _locc(locc) {}
 
+    void emit_code(rv::Compiler *c) override {
+        c->cb.emit_label(_function_name);
+        if (_function_name == "main") {
+            c->cb.emit(c->premain());
+        }
+        c->current_frame = rv::FrameInfo{_function_name, _locc, _argc};
+        // Save callee-saved registers (fp is included)
+        rv::Register::saved_apply([c, this](const rv::Register& r, int i) {
+            c->cb.emit_sd(r, rv::Register::sp(), -(i + _locc) * rv::WORD_SIZE);
+        });
+        // Set new frame pointer
+        c->cb.emit_mv(rv::Register::fp(), rv::Register::sp());
+        // Save sp
+        // c->cb.emit_sd(rv::Register::sp(), rv::Register::sp(), -(_locc + 13) * rv::WORD_SIZE);
+        c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -(_locc + 12) * rv::WORD_SIZE);
+    }
 };
 
 LEAF(Closure, Instruction)
@@ -171,6 +202,60 @@ private:
 public:
     Call(std::string function_name, int argc) : _function_name(function_name), _argc(argc) {}
 
+    void emit_code(rv::Compiler *c) override {
+        size_t alignment = (c->current_frame->locals_count + c->st.spilled_count() + _argc) & 1;
+        // Skip spilled registers
+        c->cb.emit_comment(std::format("Skip spilled registers {}", c->st.spilled_count()));
+        c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -c->st.spilled_count() * rv::WORD_SIZE);
+        // Save ra
+        c->cb.emit_sd(rv::Register::ra(), rv::Register::sp(), -rv::WORD_SIZE);
+        c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -rv::WORD_SIZE);
+        // Save temp registers
+        rv::Register::temp_apply([c](const rv::Register& r, int i) {
+            c->cb.emit_sd(r, rv::Register::sp(), -rv::WORD_SIZE);
+            c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -rv::WORD_SIZE);
+        });
+        // Save arguments
+        rv::Register::arg_apply([c](const rv::Register& r, int i) {
+            c->cb.emit_sd(r, rv::Register::sp(), -rv::WORD_SIZE);
+            c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -rv::WORD_SIZE);
+        });
+        for (auto i : std::views::iota(0ul, _argc) | std::views::take(8)) {
+            c->cb.symb_emit_mv(rv::Register::arg(i), c->st.pop());
+        }
+        // Align sp to 16 bytes
+        if (alignment) {
+            c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -rv::WORD_SIZE);
+        }
+        // Store extra arguments on stack
+        for (auto i : std::views::iota(0ul, _argc) | std::views::drop(8) | std::views::reverse) {
+            c->cb.emit_sd(c->cb.to_reg(c->st.pop(), rv::Register::temp1()), rv::Register::sp(), -rv::WORD_SIZE);
+            c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -rv::WORD_SIZE);
+        }
+        // Call function
+        c->cb.emit_call(_function_name);
+        // Drop extra arguments from stack
+        if (_argc > 8) {
+            c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), (_argc - 8) * rv::WORD_SIZE);
+        }
+        if (alignment) {
+            c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), rv::WORD_SIZE);
+        }
+        c->cb.symb_emit_mv(c->st.alloc(), rv::Register::arg(0));
+        // Restore arguments
+        for (auto i : std::views::iota(0ul, 8ul) | std::views::reverse) {
+            c->cb.emit_ld(rv::Register::arg(i), rv::Register::sp(), 0);
+            c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), rv::WORD_SIZE);
+        };
+        // Restore ra
+        c->cb.emit_ld(rv::Register::ra(), rv::Register::sp(), -rv::WORD_SIZE);
+        // Restore temp registers
+        c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), 8 * rv::WORD_SIZE);
+        rv::Register::temp_apply([c](const rv::Register& r, int i) {
+            c->cb.emit_ld(r, rv::Register::sp(), -(i + 1)*rv::WORD_SIZE);
+        });
+        c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), c->st.spilled_count() * rv::WORD_SIZE);
+    }
 };
 
 LEAF(Tag, Instruction)
@@ -283,8 +368,17 @@ public:
     PatternInst(int type) : _type(Pattern(type)) {}
 };
 
-LEAF(BuiltinRead, Instruction) };
-LEAF(BuiltinWrite, Instruction) };
+LEAF(BuiltinRead, Instruction) 
+public:
+    void emit_code(rv::Compiler *c) override {
+        Call("Lread", 0).emit_code(c);
+    }
+};
+LEAF(BuiltinWrite, Instruction) 
+    void emit_code(rv::Compiler *c) override {
+        Call("Lwrite", 1).emit_code(c);
+    }
+};
 LEAF(BuiltinLength, Instruction) };
 LEAF(BuiltinString, Instruction) };
 LEAF(BuiltinArray, Instruction) };
