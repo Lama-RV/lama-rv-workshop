@@ -72,6 +72,8 @@ namespace lama::rv {
 
         I_TYPE(addi);
         I_TYPE(slti);
+        I_TYPE(srai);
+        I_TYPE(slli);
         I_TYPE(ori);
         I_TYPE(xori);
         I_TYPE(andi);

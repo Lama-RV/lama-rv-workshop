@@ -27,3 +27,19 @@ After this, you are ready to enter environment with command:
 nix develop
 ```
 In first time it can take some time to download and build prerequisites.
+
+## Debug
+
+```sh
+qemu-riscv64 -g 1234 -L /usr/riscv64-unknown-linux-gnu test001.elf
+```
+
+```
+target remote localhost:1234
+layout asm
+```
+
+May be convenient to set for gdb:
+```
+set disassemble-next-line on
+```

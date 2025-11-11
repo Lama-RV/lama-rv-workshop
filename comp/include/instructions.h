@@ -59,7 +59,7 @@ private:
     int _value;
 
 public:
-    Const(int value) : _value(value) {}
+    Const(int value) : _value(2 * value + 1) {}
 
     inline int value() { return _value; }
 
@@ -247,13 +247,13 @@ public:
             c->cb.emit_ld(rv::Register::arg(i), rv::Register::sp(), 0);
             c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), rv::WORD_SIZE);
         };
-        // Restore ra
-        c->cb.emit_ld(rv::Register::ra(), rv::Register::sp(), -rv::WORD_SIZE);
         // Restore temp registers
         c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), 8 * rv::WORD_SIZE);
         rv::Register::temp_apply([c](const rv::Register& r, int i) {
             c->cb.emit_ld(r, rv::Register::sp(), -(i + 1)*rv::WORD_SIZE);
         });
+        // Restore ra
+        c->cb.emit_ld(rv::Register::ra(), rv::Register::sp(), -rv::WORD_SIZE);
         c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), c->st.spilled_count() * rv::WORD_SIZE);
     }
 };
@@ -298,6 +298,8 @@ public:
         auto second_loc = c->st.pop();
         auto dest_loc = c->st.alloc();
 
+        c->cb.symb_emit_srai(first_loc, first_loc, 1);
+        c->cb.symb_emit_srai(second_loc, second_loc, 1);
 #define EMIT_BINOP(code, symb) \
         case code: { \
             c->cb.symb_emit_##symb(dest_loc, first_loc, second_loc); \
@@ -307,6 +309,8 @@ public:
         switch (_op) {
             BINOPS(EMIT_BINOP);
         }
+        c->cb.symb_emit_slli(dest_loc, dest_loc, 1);
+        c->cb.symb_emit_addi(dest_loc, dest_loc, 1);
     }
 };
 
