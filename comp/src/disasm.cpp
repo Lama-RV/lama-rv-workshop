@@ -1,5 +1,6 @@
-#include <stdio.h>
-#include <cstdlib>
+#include <fmt/format.h>
+#include <glog/logging.h>
+#include <cstdio>
 #include <cstring>
 #include "bytefile.h"
 
@@ -18,14 +19,14 @@ void disassemble(FILE* f, bytefile* bf) {
   auto BYTE = [&ip]() -> char { return *(ip++); };
   auto STRING = [bf, &INT] { return get_string(bf, INT()); };
 
-  do {
+  while (true) {
     char const x = BYTE();
     char const h = (x & 0xF0) >> 4;
     char const l = x & 0x0F;
 
-    auto FAIL = [h, l] { return fprintf(stderr, "ERROR: invalid opcode %d-%d\n", h, l); };
+    auto FAIL = [h, l] { return fmt::println(stderr, "ERROR: invalid opcode {:d}-{:d}", h, l); };
 
-    fprintf(f, "0x%.8lx:\t", ip - bf->code_ptr - 1);
+    fmt::print(f, "{:#010x}:\t", ip - bf->code_ptr - 1);
 
     switch (h) {
     case 15:
@@ -33,58 +34,58 @@ void disassemble(FILE* f, bytefile* bf) {
 
     /* BINOP */
     case 0:
-      fprintf(f, "BINOP\t%s", ops[l - 1]);
+      fmt::print(f, "BINOP\t{:s}", ops[l - 1]);
       break;
 
     case 1:
       switch (l) {
       case 0:
-        fprintf(f, "CONST\t%d", INT());
+        fmt::print(f, "CONST\t{:d}", INT());
         break;
 
       case 1:
-        fprintf(f, "STRING\t%s", STRING());
+        fmt::print(f, "STRING\t{:s}", STRING());
         break;
 
       case 2:
-        fprintf(f, "SEXP\t%s ", STRING());
-        fprintf(f, "%d", INT());
+        fmt::print(f, "SEXP\t{:s} ", STRING());
+        fmt::print(f, "{:d}", INT());
         break;
 
       case 3:
-        fprintf(f, "STI");
+        fmt::print(f, "STI");
         break;
 
       case 4:
-        fprintf(f, "STA");
+        fmt::print(f, "STA");
         break;
 
       case 5:
-        fprintf(f, "JMP\t0x%.8x", INT());
+        fmt::print(f, "JMP\t{:#010x}", INT());
         break;
 
       case 6:
-        fprintf(f, "END");
+        fmt::print(f, "END");
         break;
 
       case 7:
-        fprintf(f, "RET");
+        fmt::print(f, "RET");
         break;
 
       case 8:
-        fprintf(f, "DROP");
+        fmt::print(f, "DROP");
         break;
 
       case 9:
-        fprintf(f, "DUP");
+        fmt::print(f, "DUP");
         break;
 
       case 10:
-        fprintf(f, "SWAP");
+        fmt::print(f, "SWAP");
         break;
 
       case 11:
-        fprintf(f, "ELEM");
+        fmt::print(f, "ELEM");
         break;
 
       default:
@@ -95,19 +96,19 @@ void disassemble(FILE* f, bytefile* bf) {
     case 2:
     case 3:
     case 4:
-      fprintf(f, "%s\t", lds[h - 2]);
+      fmt::print(f, "{:s}\t", lds[h - 2]);
       switch (l) {
       case 0:
-        fprintf(f, "G(%d)", INT());
+        fmt::print(f, "G({:d})", INT());
         break;
       case 1:
-        fprintf(f, "L(%d)", INT());
+        fmt::print(f, "L({:d})", INT());
         break;
       case 2:
-        fprintf(f, "A(%d)", INT());
+        fmt::print(f, "A({:d})", INT());
         break;
       case 3:
-        fprintf(f, "C(%d)", INT());
+        fmt::print(f, "C({:d})", INT());
         break;
       default:
         FAIL();
@@ -117,40 +118,40 @@ void disassemble(FILE* f, bytefile* bf) {
     case 5:
       switch (l) {
       case 0:
-        fprintf(f, "CJMPz\t0x%.8x", INT());
+        fmt::print(f, "CJMPz\t{:#010x}", INT());
         break;
 
       case 1:
-        fprintf(f, "CJMPnz\t0x%.8x", INT());
+        fmt::print(f, "CJMPnz\t{:#010x}", INT());
         break;
 
       case 2:
-        fprintf(f, "BEGIN\t%d ", INT());
-        fprintf(f, "%d", INT());
+        fmt::print(f, "BEGIN\t{:d} ", INT());
+        fmt::print(f, "{:d}", INT());
         break;
 
       case 3:
-        fprintf(f, "CBEGIN\t%d ", INT());
-        fprintf(f, "%d", INT());
+        fmt::print(f, "CBEGIN\t{:d} ", INT());
+        fmt::print(f, "{:d}", INT());
         break;
 
       case 4:
-        fprintf(f, "CLOSURE\t0x%.8x", INT());
+        fmt::print(f, "CLOSURE\t{:#010x}", INT());
         {
           int n = INT();
           for (int i = 0; i < n; i++) {
             switch (BYTE()) {
             case 0:
-              fprintf(f, "G(%d)", INT());
+              fmt::print(f, "G({:d})", INT());
               break;
             case 1:
-              fprintf(f, "L(%d)", INT());
+              fmt::print(f, "L({:d})", INT());
               break;
             case 2:
-              fprintf(f, "A(%d)", INT());
+              fmt::print(f, "A({:d})", INT());
               break;
             case 3:
-              fprintf(f, "C(%d)", INT());
+              fmt::print(f, "C({:d})", INT());
               break;
             default:
               FAIL();
@@ -160,30 +161,30 @@ void disassemble(FILE* f, bytefile* bf) {
         break;
 
       case 5:
-        fprintf(f, "CALLC\t%d", INT());
+        fmt::print(f, "CALLC\t{:d}", INT());
         break;
 
       case 6:
-        fprintf(f, "CALL\t0x%.8x ", INT());
-        fprintf(f, "%d", INT());
+        fmt::print(f, "CALL\t{:#010x} ", INT());
+        fmt::print(f, "{:d}", INT());
         break;
 
       case 7:
-        fprintf(f, "TAG\t%s ", STRING());
-        fprintf(f, "%d", INT());
+        fmt::print(f, "TAG\t{:s} ", STRING());
+        fmt::print(f, "{:d}", INT());
         break;
 
       case 8:
-        fprintf(f, "ARRAY\t%d", INT());
+        fmt::print(f, "ARRAY\t{:d}", INT());
         break;
 
       case 9:
-        fprintf(f, "FAIL\t%d", INT());
-        fprintf(f, "%d", INT());
+        fmt::print(f, "FAIL\t{:d}", INT());
+        fmt::print(f, "{:d}", INT());
         break;
 
       case 10:
-        fprintf(f, "LINE\t%d", INT());
+        fmt::print(f, "LINE\t{:d}", INT());
         break;
 
       default:
@@ -192,29 +193,29 @@ void disassemble(FILE* f, bytefile* bf) {
       break;
 
     case 6:
-      fprintf(f, "PATT\t%s", pats[l]);
+      fmt::print(f, "PATT\t{:s}", pats[l]);
       break;
 
     case 7: {
       switch (l) {
       case 0:
-        fprintf(f, "CALL\tLread");
+        fmt::print(f, "CALL\tLread");
         break;
 
       case 1:
-        fprintf(f, "CALL\tLwrite");
+        fmt::print(f, "CALL\tLwrite");
         break;
 
       case 2:
-        fprintf(f, "CALL\tLlength");
+        fmt::print(f, "CALL\tLlength");
         break;
 
       case 3:
-        fprintf(f, "CALL\tLstring");
+        fmt::print(f, "CALL\tLstring");
         break;
 
       case 4:
-        fprintf(f, "CALL\tBarray\t%d", INT());
+        fmt::print(f, "CALL\tBarray\t{:d}", INT());
         break;
 
       default:
@@ -226,29 +227,31 @@ void disassemble(FILE* f, bytefile* bf) {
       FAIL();
     }
 
-    fprintf(f, "\n");
-  } while (1);
+    fmt::println(f, "");
+  }
 stop:
-  fprintf(f, "<end>\n");
+  fmt::print(f, "<end>\n");
 }
 
 /* Dumps the contents of the file */
 void dump_file(FILE* f, bytefile* bf) {
   int i;
 
-  fprintf(f, "String table size       : %d\n", bf->stringtab_size);
-  fprintf(f, "Global area size        : %d\n", bf->global_area_size);
-  fprintf(f, "Number of public symbols: %d\n", bf->public_symbols_number);
-  fprintf(f, "Public symbols          :\n");
+  fmt::print(f, "String table size       : {:d}\n", bf->stringtab_size);
+  fmt::print(f, "Global area size        : {:d}\n", bf->global_area_size);
+  fmt::print(f, "Number of public symbols: {:d}\n", bf->public_symbols_number);
+  fmt::print(f, "Public symbols          :\n");
 
   for (i = 0; i < bf->public_symbols_number; i++)
-    fprintf(f, "   0x%.8x: %s\n", get_public_offset(bf, i), get_public_name(bf, i));
+    fmt::print(f, "   {:#010x}: {:s}\n", get_public_offset(bf, i), get_public_name(bf, i));
 
-  fprintf(f, "Code:\n");
+  fmt::print(f, "Code:\n");
   disassemble(f, bf);
 }
 
 int main(int argc, char* argv[]) {
+  google::InitGoogleLogging(argv[0]);
+  CHECK_EQ(argc, 2) << "Please, provide input file name";
   bytefile* f = read_file(argv[1]);
   dump_file(stdout, f);
   close_file(f);

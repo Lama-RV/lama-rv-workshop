@@ -79,3 +79,4 @@ target_include_directories(lama-rv PUBLIC include)
 
 add_executable(disasm src/disasm.cpp src/bytefile.cpp)
 target_include_directories(disasm PUBLIC include)
+target_link_libraries(disasm fmt glog::glog)
