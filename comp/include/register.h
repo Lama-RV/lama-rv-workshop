@@ -21,24 +21,21 @@ namespace lama::rv {
             return{(size_t) (10 + argno)};
         }
 
-        template<typename F>
-        static void saved_apply(F&& f) {
+        static void saved_apply(auto const& f) {
             int i = 0;
             for (size_t r : {8, 9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27}) {
                 f(Register{r}, ++i);
             }
         }
 
-        template<typename F>
-        static void temp_apply(F&& f) {
+        static void temp_apply(auto const& f) {
             int i = 0;
             for (size_t r : {5, 6, 7, 28, 29, 30, 31}) {
                 f(Register{r}, ++i);
             }
         }
 
-        template<typename F>
-        static void arg_apply(F&& f) {
+        static void arg_apply(auto const& f) {
             int i = 0;
             for (size_t r : {10, 11, 12, 13, 14, 15, 16, 17}) {
                 f(Register{r}, ++i);

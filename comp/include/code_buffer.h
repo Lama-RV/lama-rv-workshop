@@ -10,7 +10,7 @@ namespace lama::rv {
         private:
         std::vector<std::string> _code;
         public:
-        CodeBuffer() {}
+        CodeBuffer() = default;
 
         std::string dump_asm() {
             std::string s;
@@ -58,7 +58,7 @@ namespace lama::rv {
             void symb_emit_ ## rv_insn (const SymbolicLocation& dst, int imm) { \
                 symb_emit_u_type(#rv_insn, dst, imm); \
             }
-       
+
         #define PSEUDO_TYPE(rv_insn) \
             void emit_ ## rv_insn (const Register& dst, const Register& src) { \
                 emit_pseudo_type(#rv_insn, dst, src); \
@@ -95,7 +95,7 @@ namespace lama::rv {
             symb_emit_xori(dst, dst, 1);
         }
 
-        // sltu rd, x0, rs 
+        // sltu rd, x0, rs
         void emit_neq(const Register &dst, const Register &src1, const Register &src2) {
             emit_sub(dst, src2, src1);
             emit_snez(dst, dst);
@@ -118,7 +118,7 @@ namespace lama::rv {
             symb_emit_xori(dst, dst, 1);
         }
 
-        
+
         R_TYPE(or);
         R_TYPE(and);
         R_TYPE(srl); // logical
@@ -175,7 +175,7 @@ namespace lama::rv {
         }
 
         inline Register to_reg(const SymbolicLocation& loc, const Register& temp) {
-            return loc.type == SymbolicStack::LocType::Memory 
+            return loc.type == SymbolicStack::LocType::Memory
                 ? emit_ld(temp, rv::Register::sp(), -loc.number * WORD_SIZE), temp
                 : Register{loc.number};
         }
@@ -189,15 +189,15 @@ namespace lama::rv {
         void emit_pseudo_type(const std::string& insn, const Register& dst, const Register& src) {
             emit(std::format("{}\t{},\t{}", insn, dst, src));
         }
-      
+
         void emit_r_type(const std::string& insn, const Register& dst, const Register& src1, const Register& src2) {
-            emit(std::format("{}\t{},\t{},\t{}", insn, dst, src1, src2)); 
+            emit(std::format("{}\t{},\t{},\t{}", insn, dst, src1, src2));
         }
 
         void emit_i_type(const std::string& insn, const Register& dst, const Register& src, int imm) {
             emit(std::format("{}\t{},\t{},\t{}", insn, dst, src, imm));
         }
- 
+
         void emit_u_type(const std::string& insn, const Register& dst, int imm) {
             emit(std::format("{}\t{},\t{}", insn, dst, imm));
         }
@@ -226,7 +226,7 @@ namespace lama::rv {
             auto src_reg = to_reg(src, rv::Register::temp2());
             emit_i_type(insn, dst_reg, src_reg, imm);
         }
- 
+
         void symb_emit_u_type(const std::string& insn, const SymbolicLocation& dst, int imm) {
             auto dst_reg = to_reg(dst, rv::Register::temp1());
             emit_u_type(insn, dst_reg, imm);
@@ -244,5 +244,5 @@ namespace lama::rv {
             emit_pseudo_type(insn, dst_reg, src_reg);
         }
     };
-    
+
 }

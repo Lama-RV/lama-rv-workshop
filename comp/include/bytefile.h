@@ -1,8 +1,7 @@
-#ifndef BYTEFILE_H
-#define BYTEFILE_H
+#pragma once
 
 /* The unpacked representation of bytecode file */
-typedef struct {
+struct bytefile {
   int size;
   char *string_ptr;              /* A pointer to the beginning of the string table */
   int  *public_ptr;              /* A pointer to the beginning of publics table    */
@@ -11,8 +10,8 @@ typedef struct {
   int   stringtab_size;          /* The size (in bytes) of the string table        */
   int   global_area_size;        /* The size (in words) of global area             */
   int   public_symbols_number;   /* The number of public symbols                   */
-  char  buffer[0];               
-} bytefile;
+  char  buffer[0];
+};
 
 /* Gets a string from a string table by an index */
 const char* get_string (const bytefile *f, int pos);
@@ -27,5 +26,3 @@ bytefile *read_file (const char *fname);
 int get_public_offset(const bytefile *f, int i);
 
 void close_file(bytefile *f);
-
-#endif
