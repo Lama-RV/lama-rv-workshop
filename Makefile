@@ -10,6 +10,10 @@ lama-rv: | $(LAMA_RV_BUILD_DIR)
 	cmake -DCMAKE_BUILD_TYPE=Debug -S comp -B $(LAMA_RV_BUILD_DIR)
 	cmake --build $(LAMA_RV_BUILD_DIR) --target lama-rv
 
+dump: | disasm lama-rv
+	$(LAMA_RV_BUILD_DIR)/disasm regression/test$(TEST).bc
+	$(LAMA_RV_BUILD_DIR)/lama-rv regression/test$(TEST).bc
+
 disasm: | $(LAMA_RV_BUILD_DIR)
 	cmake -DCMAKE_BUILD_TYPE=Debug -S comp -B $(LAMA_RV_BUILD_DIR)
 	cmake --build $(LAMA_RV_BUILD_DIR) --target disasm
@@ -18,7 +22,7 @@ runtime-rv:
 	$(MAKE) -C runtime build
 
 regression: build
-	$(MAKE) -C regression check LAMA_RV_BACKEND=$(LAMA_RV)
+	$(MAKE) -C regression $(if $(value TEST),test$(TEST),check) LAMA_RV_BACKEND=$(LAMA_RV)
 
 clean:
 	rm -rf $(LAMA_RV_BUILD_DIR)
