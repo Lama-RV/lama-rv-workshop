@@ -1,5 +1,6 @@
 TESTS=$(sort $(basename $(wildcard test*.lama)))
 
+LAMA_RV_BACKEND?=../comp/build/lama-rv
 LAMAC=lamac
 RV_TRIPLET=riscv64-unknown-linux-gnu
 SIM=qemu-riscv64 -L /usr/$(RV_TRIPLET)
@@ -16,7 +17,7 @@ $(TESTS): %: %.lama
 	@$(RV_AS) $@.S -o $@.o # produce object file
 	@$(RV_GCC) $@.o ../runtime/runtime.a -o $@.elf # linux object file with runtime & C standart library
 	@$(SIM) $@.elf < $@.input > $@.output # run elf in functional simulator of RISC-V hart
-	@diff $@.output $@.ref # compare output with reference (testxxx.ref file)
+	@diff --suppress-common-lines -y $@.ref $@.output # compare output with reference (testxxx.ref file)
 
 clean:
 	rm -rf *.bc *.elf *.S *.o *.output
