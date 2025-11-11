@@ -1,10 +1,10 @@
 LAMA_RV_BUILD_DIR=$(PWD)/comp/build
 LAMA_RV=$(LAMA_RV_BUILD_DIR)/lama-rv
 
+build: lama-rv runtime-rv
+
 $(LAMA_RV_BUILD_DIR):
 	mkdir -p $(LAMA_RV_BUILD_DIR)
-
-build: lama-rv runtime-rv
 
 lama-rv: | $(LAMA_RV_BUILD_DIR)
 	cmake -DCMAKE_BUILD_TYPE=Debug -S comp -B $(LAMA_RV_BUILD_DIR)
