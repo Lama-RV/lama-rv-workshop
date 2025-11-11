@@ -1,0 +1,34 @@
+Checks:
+  - "boost-*"
+  - "bugprone-*"
+  - "cert-*"
+  - "cppcoreguidelines-*"
+  - "-cppcoreguidelines-avoid-do-while'
+  - "-cppcoreguidelines-avoid-magic-numbers"
+  - "-cppcoreguidelines-macro-usage"
+  - "-pro-bounds-pointer-arithmetic"
+  - "modernize-*"
+  - "-modernize-use-trailing-return-type"
+  - "performance-*"
+  - "readability-*"
+  - "-readability-else-after-return"
+  - "-readability-identifier-length"
+  - "-readability-magic-numbers"
+  - "-readability-math-missing-parentheses"
+  - "-readability-redundant-inline-specifier"
+  - "-readability-redundant-member-init"
+  - "misc-static-assert"
+  - "misc-throw-by-value-catch-by-reference"
+  - "misc-unconventional-assign-operator"
+  - "misc-uniqueptr-reset-release"
+  - "misc-unused-parameters"
+  - "misc-use-anonymous-namespace"
+  - "misc-use-internal-linkage"
+
+WarningsAsErrors: "\
+  modernize-use-equals-default,\
+  modernize-use-designated-initializers,\
+  performance-enum-size,\
+"
+
+FormatStyle: file

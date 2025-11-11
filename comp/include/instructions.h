@@ -64,7 +64,7 @@ public:
     inline int value() { return _value; }
 
     void emit_code(rv::Compiler *c) override {
-        auto loc = c->st.alloc(); 
+        auto loc = c->st.alloc();
         switch (loc.type) {
             case SymbolicLocationType::Memory: {
                 c->cb.emit_li(rv::Register::temp1(), _value);
@@ -104,7 +104,7 @@ public:
 
     inline size_t size() { return _size; }
 };
-LEAF(StoreStack, Instruction) 
+LEAF(StoreStack, Instruction)
 
 public:
     void emit_code(rv::Compiler *c) override {
@@ -115,7 +115,7 @@ public:
     }
 };
 LEAF(StoreArray, Instruction) };
-LEAF(End, Instruction) 
+LEAF(End, Instruction)
     void emit_code(rv::Compiler *c) override {
         assert(c->current_frame.has_value() && "no current frame in End instruction");
         size_t _locc = c->current_frame->locals_count;
@@ -132,7 +132,7 @@ LEAF(End, Instruction)
 };
 LEAF(Return, Instruction) };
 LEAF(Duplicate, Instruction) };
-LEAF(Drop, Instruction) 
+LEAF(Drop, Instruction)
     public:
     void emit_code(rv::Compiler *c) override {
         c->st.pop();
@@ -140,14 +140,14 @@ LEAF(Drop, Instruction)
 };
 LEAF(Swap, Instruction) };
 LEAF(Elem, Instruction) };
-LEAF(Jump, Instruction) 
+LEAF(Jump, Instruction)
 private:
     size_t _offset;
 
 public:
     Jump(int offset) : _offset(offset) {}
 };
-LEAF(ConditionalJump, Instruction) 
+LEAF(ConditionalJump, Instruction)
 private:
     size_t _offset;
     bool _zero;
@@ -167,7 +167,7 @@ public:
         if (_function_name == "main") {
             c->cb.emit(c->premain());
         }
-        c->current_frame = rv::FrameInfo{_function_name, _locc, _argc};
+        c->current_frame = rv::FrameInfo{.function_name=_function_name, .locals_count=_locc, .args_count=_argc};
         // Save callee-saved registers (fp is included)
         rv::Register::saved_apply([c, this](const rv::Register& r, int i) {
             c->cb.emit_sd(r, rv::Register::sp(), -(i + _locc) * rv::WORD_SIZE);
@@ -211,12 +211,12 @@ public:
         c->cb.emit_sd(rv::Register::ra(), rv::Register::sp(), -rv::WORD_SIZE);
         c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -rv::WORD_SIZE);
         // Save temp registers
-        rv::Register::temp_apply([c](const rv::Register& r, int i) {
+        rv::Register::temp_apply([c](const rv::Register& r, int _) {
             c->cb.emit_sd(r, rv::Register::sp(), -rv::WORD_SIZE);
             c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -rv::WORD_SIZE);
         });
         // Save arguments
-        rv::Register::arg_apply([c](const rv::Register& r, int i) {
+        rv::Register::arg_apply([c](const rv::Register& r, int _) {
             c->cb.emit_sd(r, rv::Register::sp(), -rv::WORD_SIZE);
             c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -rv::WORD_SIZE);
         });
@@ -327,7 +327,7 @@ public:
             assert(_loc.index < c->globals_count && "global index out of bounds");
             c->cb.symb_emit_ld(c->st.alloc(), {SymbolicLocationType::Register, rv::Register::gp().regno}, _loc.index * rv::WORD_SIZE);
             return;
-    
+
         case Location_Local:
         case Location_Arg:
         case Location_Captured:
@@ -372,13 +372,13 @@ public:
     PatternInst(int type) : _type(Pattern(type)) {}
 };
 
-LEAF(BuiltinRead, Instruction) 
+LEAF(BuiltinRead, Instruction)
 public:
     void emit_code(rv::Compiler *c) override {
         Call("Lread", 0).emit_code(c);
     }
 };
-LEAF(BuiltinWrite, Instruction) 
+LEAF(BuiltinWrite, Instruction)
     void emit_code(rv::Compiler *c) override {
         Call("Lwrite", 1).emit_code(c);
     }

@@ -58,7 +58,7 @@ private:
     inline LocationEntry read_loc() {
         Location kind = (Location)read_byte();
         int index = read_int();
-        return LocationEntry{kind, index};
+        return LocationEntry{.kind=kind, .index=index};
     }
 
 public:
@@ -141,7 +141,7 @@ public:
             std::vector<LocationEntry> captured;
             {
                 int n = read_int();
-                for (int i : std::views::iota(0, n)) {
+                for (auto _ : std::views::iota(0, n)) {
                     captured.push_back(read_loc());
                 }
             }
@@ -181,13 +181,13 @@ public:
             }
 
             case HOpcode_Ld: {
-                return std::make_unique<Load>(LocationEntry{static_cast<Location>(l), read_int()});
+                return std::make_unique<Load>(LocationEntry{.kind=static_cast<Location>(l), .index=read_int()});
             }
             case HOpcode_LdA: {
                 return std::make_unique<LoadArray>(read_int(), l);
             }
             case HOpcode_St: {
-                return std::make_unique<Store>(LocationEntry{static_cast<Location>(l), read_int()});
+                return std::make_unique<Store>(LocationEntry{.kind=static_cast<Location>(l), .index=read_int()});
             }
 
             case HOpcode_Patt: {

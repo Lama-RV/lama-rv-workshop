@@ -14,7 +14,7 @@ namespace lama::rv {
             LocType type;
             size_t number;
         };
-    
+
         constexpr static size_t regs[] = {9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 5, 6, 7, 28, 29};
 
         int top;
@@ -22,9 +22,9 @@ namespace lama::rv {
 
         Loc alloc() {
             if (top >= sizeof(regs)) {
-                return Loc{LocType::Memory, top++ - sizeof(regs)};
+                return Loc{.type=LocType::Memory, .number=top++ - sizeof(regs)};
             } else {
-                return Loc{LocType::Register, regs[top++]};
+                return Loc{.type=LocType::Register, .number=regs[top++]};
             }
         }
 
@@ -38,18 +38,18 @@ namespace lama::rv {
 
         Loc peek() {
             if (top - 1 >= sizeof(regs)) {
-                return Loc{LocType::Memory, top - 1 - sizeof(regs)};
+                return Loc{.type=LocType::Memory, .number=top - 1 - sizeof(regs)};
             } else {
-                return Loc{LocType::Register, regs[top - 1]};
+                return Loc{.type=LocType::Register, .number=regs[top - 1]};
             }
         }
 
         Loc pop() {
             assert(top > 0 && "pop from empty symbolic stack");
             if (--top >= sizeof(regs)) {
-                return Loc{LocType::Memory, top - sizeof(regs)};
+                return Loc{.type=LocType::Memory, .number=top - sizeof(regs)};
             } else {
-                return Loc{LocType::Register, regs[top]};
+                return Loc{.type=LocType::Register, .number=regs[top]};
             }
         }
     };
