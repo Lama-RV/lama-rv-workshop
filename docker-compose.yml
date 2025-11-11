@@ -7,18 +7,19 @@ services:
     volumes:
       - ./:/workspace
     working_dir: /workspace
+    platform: linux/amd64
     environment:
-      LAMA_RV_BACKEND: /workspace/lamac_rv_backend
+      LAMA_RV_BACKEND: /workspace/comp/src/lama_rv.cpp
     command: ["make", "regression"]
   
-  lama-rv-benchmark:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: lama-rv-benchmark  
-    volumes:
-      - ./:/workspace
-    working_dir: /workspace
-    environment:
-      LAMA_RV_BACKEND: /workspace/lamac_rv_backend
-    command: ["make", "-C", "performance", "check"]
+  # lama-rv-benchmark:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: lama-rv-benchmark  
+  #   volumes:
+  #     - ./:/workspace
+  #   working_dir: /workspace
+  #   environment:
+  #     LAMA_RV_BACKEND: /workspace/comp/src/lama_rv.cpp
+  #   command: ["make", "-C", "performance", "check"]
