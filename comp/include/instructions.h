@@ -385,6 +385,14 @@ public:
             c->cb.symb_emit_ld(c->st.alloc(), {SymbolicLocationType::Register, rv::Register::fp().regno}, -_loc.index * rv::WORD_SIZE);
             break;
         case Location_Arg:
+            DCHECK_LT(_loc.index , c->current_frame->args_count) << "arg index out of bounds";
+            if (_loc.index < 8) {
+                c->cb.symb_emit_mv(c->st.alloc(), rv::Register::arg(_loc.index));
+            } else {
+                c->cb.symb_emit_ld(c->st.alloc(), {SymbolicLocationType::Register, rv::Register::fp().regno},  static_cast<size_t>(_loc.index) - 8);
+            }
+            break;
+
         case Location_Captured:
             LOG(FATAL) << std::format("Unimplemented {:s} (loc.kind = {:d})", name(), to_underlying(_loc.kind));
             break;
@@ -417,6 +425,12 @@ public:
             c->cb.symb_emit_sd(value, {SymbolicLocationType::Register, rv::Register::fp().regno}, -_loc.index * rv::WORD_SIZE);
             break;
         case Location_Arg:
+            if (_loc.index < 8) {
+                c->cb.symb_emit_mv(value, rv::Register::arg(_loc.index));
+            } else {
+                c->cb.symb_emit_sd(value, {SymbolicLocationType::Register, rv::Register::fp().regno}, (_loc.index - 8) * rv::WORD_SIZE);
+            }
+            break;
         case Location_Captured:
             LOG(FATAL) << std::format("Unimplemented {:s} (loc.kind = {:d})", name(), to_underlying(_loc.kind));
         }

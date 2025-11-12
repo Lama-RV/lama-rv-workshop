@@ -1,4 +1,5 @@
 #include <glog/logging.h>
+#include <cerrno>
 #include <cstddef>
 #include <cstring>
 
@@ -17,6 +18,9 @@ bytefile* read_file(char const* fname) {
     CHECK_NOTNULL(file)->size = total_size;
 
     rewind(f);
+    if (errno) {
+        LOG(FATAL) << "Error rewinding " << fname;
+    }
 
     PCHECK(fread(&file->stringtab_size, 1, size, f) == size);
 
