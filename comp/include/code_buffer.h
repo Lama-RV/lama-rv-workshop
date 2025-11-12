@@ -1,6 +1,7 @@
 #pragma once
 
 #include <format>
+#include <ostream>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -11,18 +12,9 @@ namespace lama::rv {
 
     class CodeBuffer {
         private:
-        std::vector<std::string> _code;
+        std::ostream& out_;
         public:
-        CodeBuffer() = default;
-
-        std::string dump_asm() {
-            std::string s;
-            s.reserve(1 << 14);
-            for (const std::string& str : _code) {
-                s += str + "\n";
-            }
-            return s;
-        }
+        CodeBuffer(std::ostream& os): out_(os) {};
 
         using SymbolicLocation = SymbolicStack::Loc;
 
@@ -199,8 +191,8 @@ namespace lama::rv {
                 : Register{loc.number};
         }
 
-        void emit(std::string str) {
-            _code.emplace_back(str);
+        void emit(std::string_view str) {
+            out_ << str << std::endl;
         }
 
         private:

@@ -2,13 +2,19 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <ostream>
 #include <sstream>
 #include "bytefile.h"
 #include "inst_reader.h"
 #include "instruction.h"
 
-std::string emit(std::map<size_t, std::unique_ptr<lama::Instruction>> const& instructions, size_t n_globals) {
-    lama::rv::Compiler c{n_globals};
+void emit(
+    std::map<size_t, std::unique_ptr<lama::Instruction>> const& instructions,
+    size_t n_globals,
+    std::ostream& out
+) {
+    lama::rv::Compiler c{out, n_globals};
+    c.header();
     CHECK(!instructions.empty());
     c.add_jump_target(instructions.begin()->first, 0);
     while (true) {
@@ -25,12 +31,12 @@ std::string emit(std::map<size_t, std::unique_ptr<lama::Instruction>> const& ins
         for (auto it = instructions.find(start_offset); it != instructions.end(); ++it) {
             auto const& [offset, inst] = *it;
             c.inst_begin(offset);
+            c.debug_stack_height();
             {
                 std::ostringstream disasm;
                 disasm << "-> " << *inst;
                 c.cb.emit_comment(disasm.view());
             }
-            c.debug_stack_height();
             inst->emit_code(&c);
             c.debug_stack_height();
             if (inst->is_terminator()) {
@@ -39,7 +45,7 @@ std::string emit(std::map<size_t, std::unique_ptr<lama::Instruction>> const& ins
             }
         }
     }
-    return c.dump_asm();
+    out << std::endl;
 }
 
 int main(int argc, char const* argv[]) {
@@ -59,6 +65,6 @@ int main(int argc, char const* argv[]) {
         auto [_pos, inserted] = instructions.emplace(offset, std::move(inst));
         DCHECK(inserted) << std::format("{:#x}", offset);
     }
-    std::cout << emit(instructions, file->global_area_size) << std::endl;
+    emit(instructions, file->global_area_size, std::cout);
     close_file(file);
 }
