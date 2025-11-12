@@ -81,6 +81,9 @@ void Closure::print(std::ostream& os) const {
 
 void Begin::print(std::ostream& os) const {
     os << "BEGIN\t" << _argc << " " << _locc;
+    if (std::holds_alternative<std::string>(_id)) {
+        os << "\t# " << std::get<std::string>(_id);
+    }
 }
 
 void End::print(std::ostream& os) const {

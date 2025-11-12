@@ -126,10 +126,18 @@ void disassemble(std::ostream& f, bytefile* bf) {
                 f << std::format("CJMPnz\t{:#010x}", INT());
                 break;
 
-            case 2:
-                f << std::format("BEGIN\t{:d} ", INT());
-                f << std::format("{:d}", INT());
-                break;
+            case 2: {
+                {
+                    auto const offset = (ip - bf->code_ptr) - 1;
+                    f << std::format("BEGIN\t{:d} ", INT());
+                    f << std::format("{:d}", INT());
+                    for (size_t i = 0; i < bf->public_symbols_number; ++i) {
+                        if (get_public_offset(bf, i) == offset) {
+                            f << "\t# " << get_public_name(bf, i);
+                        }
+                    }
+                }
+            } break;
 
             case 3:
                 f << std::format("CBEGIN\t{:d} ", INT());
