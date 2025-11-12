@@ -17,7 +17,7 @@
         name = "lama-rv";
 
         packages = with pkgs; [
-          qemu
+          qemu-user
           lamac
           gcc
           clang-tools
