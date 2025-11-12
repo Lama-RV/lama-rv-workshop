@@ -18,8 +18,7 @@ public:
     // True = terminator
     // False = not a terminator, keep going.
     virtual IsTerminator emit_code(rv::Compiler*) const {
-        LOG(ERROR) << "emit_code unimplemented for " << name();
-        return IsTerminator::No;
+        LOG(FATAL) << "emit_code unimplemented for " << name();
     };
 
     virtual ~Instruction() = default;

@@ -140,7 +140,13 @@ LEAF(End, Instruction)
     }
 };
 LEAF(Return, Instruction) };
-LEAF(Duplicate, Instruction) };
+LEAF(Duplicate, Instruction)
+    public:
+    IsTerminator emit_code(rv::Compiler *c) const override {
+        c->st.push(c->st.peek());
+        return IsTerminator::No;
+    }
+};
 LEAF(Drop, Instruction)
     public:
     IsTerminator emit_code(rv::Compiler *c) const override {
