@@ -23,7 +23,6 @@
           clang-tools
           cmake
           gdb
-          fmt_11
           glog
 
           pkgsRV.stdenv.cc

@@ -68,7 +68,6 @@ endif ()
 
 # Dependencies
 find_package(glog 0.7 REQUIRED)
-find_package(fmt 0.11 REQUIRED)
 
 add_library(bytefile src/bytefile.cpp)
 target_include_directories(bytefile PUBLIC include)
@@ -80,4 +79,4 @@ target_link_libraries(lama-rv bytefile glog::glog)
 
 add_executable(disasm src/disasm.cpp src/bytefile.cpp)
 target_include_directories(disasm PUBLIC include)
-target_link_libraries(disasm bytefile glog::glog fmt)
+target_link_libraries(disasm bytefile glog::glog)
