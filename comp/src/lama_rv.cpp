@@ -1,5 +1,4 @@
 #include <glog/logging.h>
-#include <format>
 #include <iostream>
 #include "bytefile.h"
 #include "inst_reader.h"
@@ -18,11 +17,18 @@ int main(int argc, char const* argv[]) {
     while (true) {
         auto const offset = reader.get_offset();
         c.cb.set_ip(offset);
+        auto const stack_height =c.st.top;
+        c.stack_hieghts.actual[offset] = stack_height;
+        c.cb.emit_comment(std::format("Stack height = {:d}", stack_height));
         auto const inst = reader.read_inst();
-        if (!inst){
+        if (!inst) {
             break;
         }
         inst->emit_code(&c);
+    }
+
+    for (auto const& [offset, expected] : c.stack_hieghts.expected) {
+        DCHECK_EQ(expected, c.stack_hieghts.actual.at(offset)) << std::format("Offset = {:#x}", offset);
     }
 
     std::cout << c.dump_asm();

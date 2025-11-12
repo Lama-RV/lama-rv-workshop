@@ -150,6 +150,7 @@ public:
     Jump(int target) : _target(target) {}
     void emit_code(rv::Compiler *c) const override {
         c->cb.emit_j(c->cb.label_for_ip(_target));
+        c->add_expected_stack_height(_target, c->st.top);
     }
 };
 LEAF(ConditionalJump, Instruction)
@@ -169,6 +170,7 @@ public:
             rv::Register::zero(),
             c->cb.label_for_ip(_target)
         );
+        c->add_expected_stack_height(_target, c->st.top);
     }
 };
 LEAF(Begin, Instruction)
