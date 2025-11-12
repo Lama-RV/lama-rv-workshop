@@ -36,6 +36,7 @@ public:
     }
 
     Loc peek() {
+        DCHECK_GT(top, 0) << "peek at empty symbolic stack";
         if (top - 1 >= sizeof(regs)) {
             return Loc{.type = LocType::Memory, .number = top - 1 - sizeof(regs)};
         } else {

@@ -10,16 +10,13 @@ class Instruction {
 public:
     virtual char const* name() const = 0;
 
-    enum class IsTerminator {
-        No,
-        Yes,
-    };
-
-    // True = terminator
-    // False = not a terminator, keep going.
-    virtual IsTerminator emit_code(rv::Compiler*) const {
+    virtual void emit_code(rv::Compiler*) const {
         LOG(FATAL) << "emit_code unimplemented for " << name();
     };
+
+    virtual bool is_terminator() const {
+        return false;
+    }
 
     virtual ~Instruction() = default;
 };

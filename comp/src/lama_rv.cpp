@@ -9,7 +9,7 @@
 std::string emit(std::map<size_t, std::unique_ptr<lama::Instruction>> const& instructions, size_t n_globals) {
     lama::rv::Compiler c{n_globals};
     CHECK(!instructions.empty());
-    c.bb_begin(instructions.begin()->first, 0);
+    c.add_jump_target(instructions.begin()->first, 0);
     while (true) {
         auto todo_it = c.todo.begin();
         if (todo_it == c.todo.end()) {
@@ -25,9 +25,9 @@ std::string emit(std::map<size_t, std::unique_ptr<lama::Instruction>> const& ins
             auto const& [offset, inst] = *it;
             c.inst_begin(offset);
             c.debug_stack_height();
-            auto is_terminator = inst->emit_code(&c);
+            inst->emit_code(&c);
             c.debug_stack_height();
-            if (is_terminator == lama::Instruction::IsTerminator::Yes) {
+            if (inst->is_terminator()) {
                 c.cb.emit_comment("============");
                 break;
             }

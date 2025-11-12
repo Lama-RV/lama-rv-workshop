@@ -23,7 +23,11 @@ public:
     std::unordered_map<size_t, size_t> done;
     std::unordered_map<size_t, size_t> todo;
 
-    void bb_begin(size_t offset, size_t stack_height) {
+    static std::string label_for_ip(size_t ip){
+        return std::format("lamabc_{:#x}", ip);
+    }
+
+    void add_jump_target(size_t offset, size_t stack_height) {
         auto as_done = done.find(offset);
         if (as_done == done.end()) {
             cb.emit_comment(std::format("Expectings stack height {:d} at {:#x}", stack_height, offset));
@@ -38,7 +42,7 @@ public:
         size_t const stack_height = st.top;
         auto [as_done, inserted] = done.emplace(offset, stack_height);
         DCHECK_EQ(as_done->second, stack_height) << std::format("offset = {:#x}", offset);
-        auto const label = cb.label_for_ip(offset);
+        auto const label = label_for_ip(offset);
         if (inserted) {
             cb.emit_label(label);
         } else {

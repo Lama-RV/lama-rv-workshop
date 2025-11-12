@@ -15,10 +15,6 @@ namespace lama::rv {
         public:
         CodeBuffer() = default;
 
-        static std::string label_for_ip(size_t ip){
-            return std::format("lamabc_{:#x}", ip);
-        }
-
         std::string dump_asm() {
             std::string s;
             s.reserve(1 << 14);
