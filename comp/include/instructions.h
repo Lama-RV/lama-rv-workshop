@@ -1,11 +1,13 @@
 #pragma once
 #include "code_buffer.h"
+#include "cpp.h"
 #include "instruction.h"
-#include "cpp23.h"
+#include "cpp.h"
 #include "opcode.h"
 #include "register.h"
 #include <cstdint>
 #include <ranges>
+#include <variant>
 
 namespace lama {
 
@@ -189,17 +191,24 @@ public:
 };
 LEAF(Begin, Instruction)
 private:
-    std::string _function_name;
+    std::variant<std::string, size_t> _id;
     size_t _argc, _locc;
 public:
-    Begin(const std::string& function_name, int argc, int locc) : _function_name(function_name), _argc(argc), _locc(locc) {}
+    Begin(std::string function_name, int argc, int locc) : _id(std::move(function_name)), _argc(argc), _locc(locc) {}
+    Begin(size_t offset, int argc, int locc) : _id(offset), _argc(argc), _locc(locc) {}
 
     void emit_code(rv::Compiler *c) const override {
-        c->cb.emit_label(_function_name);
-        if (_function_name == "main") {
+        std::string name = std::visit(overloads{
+            [c](size_t offset) { return c->label_for_ip(offset); },
+            [c](std::string name) {
+                c->cb.emit_label(name);
+                return name;
+            },
+        }, _id);
+        if (name == "main") {
             c->cb.emit(c->premain());
         }
-        c->current_frame = rv::FrameInfo{.function_name=_function_name, .locals_count=_locc, .args_count=_argc};
+        c->current_frame = rv::FrameInfo{.function_name=std::move(name), .locals_count=_locc, .args_count=_argc};
         // Save callee-saved registers (fp is included)
         rv::Register::saved_apply([c, this](const rv::Register& r, int i) {
             c->cb.emit_sd(r, rv::Register::sp(), -(i + _locc) * rv::WORD_SIZE);
@@ -229,10 +238,11 @@ public:
 
 LEAF(Call, Instruction)
 private:
-    std::string _function_name;
-    size_t  _argc;
+    std::variant<std::string, size_t> _callee;
+    size_t _argc;
 public:
-    Call(std::string function_name, int argc) : _function_name(function_name), _argc(argc) {}
+    Call(std::string function_name, int argc) : _callee(std::move(function_name)), _argc(argc) {}
+    Call(size_t offset, int argc) : _callee(offset), _argc(argc) {}
 
     void emit_code(rv::Compiler *c) const override {
         size_t alignment = (c->current_frame->locals_count + c->st.spilled_count() + _argc) & 1;
@@ -265,7 +275,13 @@ public:
             c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -rv::WORD_SIZE);
         }
         // Call function
-        c->cb.emit_call(_function_name);
+        c->cb.emit_call(std::visit(overloads{
+                [](std::string name) {return name; },
+                [c, argc = _argc](size_t offset) {
+                    c->add_jump_target(offset, argc);
+                    return c->label_for_ip(offset);
+                },
+        }, _callee));
         // Drop extra arguments from stack
         if (_argc > 8) {
             c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), (_argc - 8) * rv::WORD_SIZE);
