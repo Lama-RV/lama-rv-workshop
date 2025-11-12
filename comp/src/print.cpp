@@ -27,23 +27,24 @@ std::string loc_to_string(std::variant<std::string, size_t> const& loc) {
 namespace lama {
 
 void Const::print(std::ostream& os) const {
-    os << "CONST\t" << _value;
+    DCHECK(_value & 1);
+    os << "CONST\t" << (_value >> 1);
 }
 
 void String::print(std::ostream& os) const {
     os << "STRING\t" << this->_str;
 }
 
-void SExpression::print(std::ostream&) const {
+void SExpression::print(std::ostream& os) const {
     TODO();
 }
 
-void StoreStack::print(std::ostream&) const {
+void StoreStack::print(std::ostream& os) const {
     TODO();
 }
 
-void StoreArray::print(std::ostream&) const {
-    TODO();
+void StoreArray::print(std::ostream& os) const {
+    os << "STA";
 }
 
 void Jump::print(std::ostream& os) const {
@@ -54,7 +55,7 @@ void ConditionalJump::print(std::ostream& os) const {
     os << "CJMP" << (_zero ? "z" : "nz") << "\t" << std::format("{:#010x}", _target);
 }
 
-void Return::print(std::ostream&) const {
+void Return::print(std::ostream& os) const {
     TODO();
 }
 
@@ -62,11 +63,11 @@ void Drop::print(std::ostream& os) const {
     os << "DROP";
 }
 
-void Duplicate::print(std::ostream&) const {
+void Duplicate::print(std::ostream& os) const {
     TODO();
 }
 
-void Swap::print(std::ostream&) const {
+void Swap::print(std::ostream& os) const {
     TODO();
 }
 
@@ -74,31 +75,31 @@ void Elem::print(std::ostream& os) const {
     os << "ELEM";
 }
 
-void Closure::print(std::ostream&) const {
+void Closure::print(std::ostream& os) const {
     TODO();
 }
 
 void Begin::print(std::ostream& os) const {
-    os << "BEGIN\t" << loc_to_string(_id) << "\t" << _argc << "\t" << _locc;
+    os << "BEGIN\t" << _argc << " " << _locc;
 }
 
 void End::print(std::ostream& os) const {
     os << "END";
 }
 
-void CallClosure::print(std::ostream&) const {
+void CallClosure::print(std::ostream& os) const {
     TODO();
 }
 
-void Tag::print(std::ostream&) const {
+void Tag::print(std::ostream& os) const {
     TODO();
 }
 
-void Array::print(std::ostream&) const {
+void Array::print(std::ostream& os) const {
     TODO();
 }
 
-void Fail::print(std::ostream&) const {
+void Fail::print(std::ostream& os) const {
     TODO();
 }
 
@@ -110,15 +111,15 @@ void Load::print(std::ostream& os) const {
     os << "LD\t" << _loc;
 }
 
-void LoadArray::print(std::ostream&) const {
+void LoadArray::print(std::ostream& os) const {
     TODO();
 }
 
 void Store::print(std::ostream& os) const {
-    os << "STORE\t" << _loc;
+    os << "ST\t" << _loc;
 }
 
-void PatternInst::print(std::ostream&) const {
+void PatternInst::print(std::ostream& os) const {
     TODO();
 }
 
@@ -130,12 +131,12 @@ void BuiltinWrite::print(std::ostream& os) const {
     os << "CALL\tLwrite";
 }
 
-void BuiltinLength::print(std::ostream&) const {
-    TODO();
+void BuiltinLength::print(std::ostream& os) const {
+    os << "CALL\tLlength";
 }
 
-void BuiltinString::print(std::ostream&) const {
-    TODO();
+void BuiltinString::print(std::ostream& os) const {
+    os << "CALL\tLstring";
 }
 
 void BuiltinArray::print(std::ostream& os) const {
@@ -143,7 +144,7 @@ void BuiltinArray::print(std::ostream& os) const {
 }
 
 void Call::print(std::ostream& os) const {
-    os << "CALL\t" << loc_to_string(_callee) << "\t" << _argc;
+    os << "CALL\t" << loc_to_string(_callee) << " " << _argc;
 }
 
 void Binop::print(std::ostream& os) const {
