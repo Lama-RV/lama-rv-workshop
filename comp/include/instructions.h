@@ -321,8 +321,8 @@ private:
     size_t _line;
 public:
     Line(int line) : _line(line) {}
-    IsTerminator emit_code(rv::Compiler *) const override {
-        // do nothing
+    IsTerminator emit_code(rv::Compiler *c) const override {
+        c->cb.emit_comment(std::format("LINE {:d}", _line));
         return IsTerminator::No;
     }
 };
