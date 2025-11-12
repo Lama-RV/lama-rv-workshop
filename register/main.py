@@ -4,6 +4,7 @@ from pathlib import Path
 from gen_password import gen_password
 from gen_ssh import gen_ssh_keys
 from container_creator import create_container
+from email_sender import send_access_email
 
 BASE_IMAGE = "lama-rv-workshop-lama-rv:latest"
 ACCESS_FILE = "access.csv"
@@ -50,7 +51,7 @@ def main():
                 ssh_port, 
                 str(private_key),
             ])
-
+            send_access_email(email, login, password, str(private_key))
     print("\n✅ All containers are ready.")
     print(f"Access info saved to {ACCESS_FILE}")
 
