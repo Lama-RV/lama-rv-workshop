@@ -1,69 +1,69 @@
-#include "inst_reader.h"
-#include <memory>
-#include "instructions.h"
 #include <glog/logging.h>
+#include <memory>
+#include "inst_reader.h"
+#include "instructions.h"
 
 std::unique_ptr<lama::Instruction> lama::InstReader::read_inst() {
     unsigned char x = read_byte(), h = (x & 0xF0) >> 4, l = x & 0x0F;
 
-    switch (x) {
-    case Opcode_Const: {
+    switch (static_cast<Opcode>(x)) {
+    case Opcode::Const: {
         return std::make_unique<Const>(read_int());
     }
 
-    case Opcode_String: {
+    case Opcode::String: {
         return std::make_unique<String>(read_string());
     }
 
-    case Opcode_SExp: {
+    case Opcode::SExp: {
         return std::make_unique<SExpression>(read_string(), read_int());
     }
 
-    case Opcode_StI: {
+    case Opcode::StI: {
         return std::make_unique<StoreStack>();
     }
 
-    case Opcode_StA: {
+    case Opcode::StA: {
         return std::make_unique<StoreArray>();
     }
 
-    case Opcode_Jmp: {
+    case Opcode::Jmp: {
         return std::make_unique<Jump>(read_int());
     }
 
-    case Opcode_End: {
+    case Opcode::End: {
         return std::make_unique<End>();
     }
 
-    case Opcode_Ret: {
+    case Opcode::Ret: {
         return std::make_unique<Return>();
     }
 
-    case Opcode_Drop: {
+    case Opcode::Drop: {
         return std::make_unique<Drop>();
     }
 
-    case Opcode_Dup: {
+    case Opcode::Dup: {
         return std::make_unique<Duplicate>();
     }
 
-    case Opcode_Swap: {
+    case Opcode::Swap: {
         return std::make_unique<Swap>();
     }
 
-    case Opcode_Elem: {
+    case Opcode::Elem: {
         return std::make_unique<Elem>();
     }
 
-    case Opcode_CJmpZ: {
+    case Opcode::CJmpZ: {
         return std::make_unique<ConditionalJump>(read_int(), true);
     }
 
-    case Opcode_CJmpNZ: {
+    case Opcode::CJmpNZ: {
         return std::make_unique<ConditionalJump>(read_int(), false);
     }
 
-    case Opcode_Begin: {
+    case Opcode::Begin: {
         auto const index = function_index++;
         auto const is_public = index < file->public_symbols_number;
         size_t const offset = get_offset() - 1;
@@ -77,11 +77,11 @@ std::unique_ptr<lama::Instruction> lama::InstReader::read_inst() {
         }
     }
 
-    case Opcode_CBegin: {
+    case Opcode::CBegin: {
         return std::make_unique<Begin>("closure", read_int(), read_int());
     }
 
-    case Opcode_Closure: {
+    case Opcode::Closure: {
         int entry = read_int();
         std::vector<LocationEntry> captured;
         {
@@ -93,68 +93,68 @@ std::unique_ptr<lama::Instruction> lama::InstReader::read_inst() {
         return std::make_unique<Closure>(entry, std::move(captured));
     }
 
-    case Opcode_CallC: {
+    case Opcode::CallC: {
         return std::make_unique<CallClosure>(read_int());
     }
 
-    case Opcode_Call: {
+    case Opcode::Call: {
         auto const callee = read_int();
         auto const argc = read_int();
         return std::make_unique<Call>(callee, argc);
     }
 
-    case Opcode_Tag: {
+    case Opcode::Tag: {
         return std::make_unique<Tag>(read_string(), read_int());
     }
 
-    case Opcode_Array: {
+    case Opcode::Array: {
         return std::make_unique<Array>(read_int());
     }
 
-    case Opcode_Fail: {
+    case Opcode::Fail: {
         return std::make_unique<Fail>(read_int(), read_int());
     }
 
-    case Opcode_Line: {
+    case Opcode::Line: {
         return std::make_unique<Line>(read_int());
     }
 
     default:
 
-        switch (h) {
-        case HOpcode_Binop: {
-            return std::make_unique<Binop>(l);
+        switch (static_cast<HOpcode>(h)) {
+        case HOpcode::Binop: {
+            return std::make_unique<Binop>(static_cast<BinopKind>(l));
         }
 
-        case HOpcode_Ld: {
+        case HOpcode::Ld: {
             return std::make_unique<Load>(LocationEntry{.kind = static_cast<Location>(l), .index = read_int()});
         }
-        case HOpcode_LdA: {
+        case HOpcode::LdA: {
             return std::make_unique<LoadArray>(read_int(), l);
         }
-        case HOpcode_St: {
+        case HOpcode::St: {
             return std::make_unique<Store>(LocationEntry{.kind = static_cast<Location>(l), .index = read_int()});
         }
 
-        case HOpcode_Patt: {
+        case HOpcode::Patt: {
             return std::make_unique<PatternInst>(l);
         }
 
-        case HOpcode_LCall: {
-            switch (l) {
-            case LCall_Lread: {
+        case HOpcode::LCall: {
+            switch (static_cast<LCall>(l)) {
+            case LCall::Lread: {
                 return std::make_unique<BuiltinRead>();
             }
-            case LCall_Lwrite: {
+            case LCall::Lwrite: {
                 return std::make_unique<BuiltinWrite>();
             }
-            case LCall_Llength: {
+            case LCall::Llength: {
                 return std::make_unique<BuiltinLength>();
             }
-            case LCall_Lstring: {
+            case LCall::Lstring: {
                 return std::make_unique<BuiltinString>();
             }
-            case LCall_Barray: {
+            case LCall::Barray: {
                 return std::make_unique<BuiltinArray>();
             }
             default:
@@ -162,7 +162,7 @@ std::unique_ptr<lama::Instruction> lama::InstReader::read_inst() {
                 return nullptr;
             }
         }
-        case HOpcode_Stop: {
+        case HOpcode::Stop: {
             return nullptr;
         }
         default:

@@ -288,10 +288,10 @@ public:
 
 class Binop : public Instruction {
 private:
-    size_t _op;
+    BinopKind _op;
 
 public:
-    Binop(int op)
+    Binop(::BinopKind op)
         : _op(op) {}
     void print(std::ostream&) const override;
     void emit_code(rv::Compiler* c) const override;

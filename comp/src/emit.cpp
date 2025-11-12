@@ -133,7 +133,7 @@ void Fail::emit_code(rv::Compiler*) const {
 
 void Load::emit_code(rv::Compiler* c) const {
     switch (_loc.kind) {
-    case Location_Global: {
+    case Location::Global: {
         DCHECK_LT(_loc.index, c->globals_count) << "global index out of bounds";
         c->cb.symb_emit_ld(
             c->st.alloc(), {SymbolicLocationType::Register, rv::Register::gp().regno}, _loc.index * rv::WORD_SIZE
@@ -141,13 +141,13 @@ void Load::emit_code(rv::Compiler* c) const {
         break;
     };
 
-    case Location_Local:
+    case Location::Local:
         DCHECK_LT(_loc.index, c->current_frame->locals_count) << "local index out of bounds";
         c->cb.symb_emit_ld(
             c->st.alloc(), {SymbolicLocationType::Register, rv::Register::fp().regno}, -_loc.index * rv::WORD_SIZE
         );
         break;
-    case Location_Arg:
+    case Location::Arg:
         DCHECK_LT(_loc.index, c->current_frame->args_count) << "arg index out of bounds";
         if (_loc.index < 8) {
             c->cb.symb_emit_mv(c->st.alloc(), rv::Register::arg(_loc.index));
@@ -159,7 +159,7 @@ void Load::emit_code(rv::Compiler* c) const {
         }
         break;
 
-    case Location_Captured:
+    case Location::Captured:
         TODO() << *this;
         break;
     }
@@ -172,18 +172,18 @@ void LoadArray::emit_code(rv::Compiler*) const {
 void Store::emit_code(rv::Compiler* c) const {
     auto value = c->st.peek();
     switch (_loc.kind) {
-    case Location_Global: {
+    case Location::Global: {
         c->cb.symb_emit_sd(
             value, {SymbolicLocationType::Register, rv::Register::gp().regno}, _loc.index * rv::WORD_SIZE
         );
         break;
     }
-    case Location_Local:
+    case Location::Local:
         c->cb.symb_emit_sd(
             value, {SymbolicLocationType::Register, rv::Register::fp().regno}, -_loc.index * rv::WORD_SIZE
         );
         break;
-    case Location_Arg:
+    case Location::Arg:
         if (_loc.index < 8) {
             c->cb.symb_emit_mv(value, rv::Register::arg(_loc.index));
         } else {
@@ -192,7 +192,7 @@ void Store::emit_code(rv::Compiler* c) const {
             );
         }
         break;
-    case Location_Captured:
+    case Location::Captured:
         TODO() << *this;
     }
 }

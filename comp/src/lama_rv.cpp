@@ -2,6 +2,7 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <sstream>
 #include "bytefile.h"
 #include "inst_reader.h"
 #include "instruction.h"
@@ -24,6 +25,11 @@ std::string emit(std::map<size_t, std::unique_ptr<lama::Instruction>> const& ins
         for (auto it = instructions.find(start_offset); it != instructions.end(); ++it) {
             auto const& [offset, inst] = *it;
             c.inst_begin(offset);
+            {
+                std::ostringstream disasm;
+                disasm << "-> " << *inst;
+                c.cb.emit_comment(disasm.view());
+            }
             c.debug_stack_height();
             inst->emit_code(&c);
             c.debug_stack_height();
@@ -50,11 +56,9 @@ int main(int argc, char const* argv[]) {
         if (!inst) {
             break;
         }
-        // DLOG(INFO) << *inst;
         auto [_pos, inserted] = instructions.emplace(offset, std::move(inst));
         DCHECK(inserted) << std::format("{:#x}", offset);
     }
-    size_t n_globals = file->global_area_size;
+    std::cout << emit(instructions, file->global_area_size) << std::endl;
     close_file(file);
-    std::cout << emit(instructions, n_globals) << std::endl;
 }

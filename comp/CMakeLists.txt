@@ -75,7 +75,7 @@ target_link_libraries(bytefile glog::glog)
 
 add_executable(lama-rv
     src/lama_rv.cpp
-    src/inst_reader.cpp
+    src/read.cpp
     src/print.cpp
     src/emit.cpp
 )

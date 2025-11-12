@@ -173,7 +173,7 @@ namespace lama::rv {
             emit(std::format("{}:", label));
         }
 
-        void emit_comment(const std::string& comment) {
+        void emit_comment(std::string_view comment) {
             emit(std::format("# {}", comment));
         }
 
