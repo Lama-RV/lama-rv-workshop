@@ -25,9 +25,10 @@ RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100 \
 ENV CC=/usr/bin/gcc-13
 ENV CXX=/usr/bin/g++-13
 
-RUN mkdir /var/run/sshd && \
+RUN mkdir -p /var/run/sshd /root/.ssh && chmod 700 /root/.ssh && \
     echo 'root:root' | chpasswd && \
-    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    sed -i 's/#PubkeyAuthentication.*/PubkeyAuthentication yes/' /etc/ssh/sshd_config && \
+    sed -i 's/#PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config && \
     sed -i 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' /etc/pam.d/sshd
 
 EXPOSE 22

@@ -22,7 +22,8 @@ def create_container(
         "--name", container_name,
         "-v", f"{user_dir.resolve()}:/workspace",
         "-p", f"{ssh_port}:22",
-        base_image
+        base_image,
+        "/usr/sbin/sshd", "-D"
     ], check=True)
 
     subprocess.run([
@@ -40,6 +41,14 @@ def create_container(
         container_name, 
         "chmod", 
         "600", 
+        "/root/.ssh/authorized_keys"
+    ], check=True)
+    subprocess.run([
+        "docker",
+        "exec",
+        container_name,
+        "chown",
+        "root:root",
         "/root/.ssh/authorized_keys"
     ], check=True)
 
