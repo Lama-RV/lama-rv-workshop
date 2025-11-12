@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: lama-rv-test
+    container_name: lama-rv
     volumes:
       - ./:/workspace
     working_dir: /workspace

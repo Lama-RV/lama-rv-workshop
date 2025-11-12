@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y software-properties-common curl \
         make pkg-config \
         libc6-dev libncurses5-dev \
         libgoogle-glog-dev \
-        ocaml dune qemu-user gcc-riscv64-linux-gnu diffutils bash git \
+        ocaml ocaml-dune qemu-user gcc-riscv64-linux-gnu diffutils bash git \
         openssh-server \
     && ln -s /usr/bin/riscv64-linux-gnu-gcc /usr/local/bin/riscv64-unknown-linux-gnu-gcc \
     && rm -rf /var/lib/apt/lists/*

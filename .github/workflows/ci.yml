@@ -11,9 +11,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build Docker image
-        run: docker build -t lama-rv .
-
-      - name: Run tests inside container
+      - name: Set up Docker Compose
         run: |
-          docker run --rm lama-rv make -C regression check
+          sudo apt-get update
+          sudo apt-get install -y docker-compose-plugin
+
+      - name: Build and start services
+        run: |
+          docker compose up -d --build lama-rv
+
+      - name: Run regression tests
+        run: |
+          docker compose exec lama-rv make -C regression check
+
+      - name: Stop and clean up
+        if: always()
+        run: |
+          docker compose down -v
