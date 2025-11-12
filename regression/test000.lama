@@ -1,0 +1,6 @@
+var n = read ();
+
+do
+  n := n - 1;
+  write(n)
+while n != 0 od
