@@ -65,19 +65,20 @@ public:
 
     inline int value() { return _value; }
 
-    void emit_code(rv::Compiler *c) const override {
+    IsTerminator emit_code(rv::Compiler *c) const override {
         auto loc = c->st.alloc();
         switch (loc.type) {
             case SymbolicLocationType::Memory: {
                 c->cb.emit_li(rv::Register::temp1(), _value);
                 c->cb.emit_sd(rv::Register::temp1(), rv::Register::fp(), -loc.number * rv::WORD_SIZE);
-                return;
+                break;
             }
             case SymbolicLocationType::Register: {
                 c->cb.emit_li({(uint8_t) loc.number}, _value);
-                return;
+                break;
             }
         }
+        return IsTerminator::No;
     }
 };
 
@@ -89,9 +90,10 @@ public:
 
     inline const char* str() { return _str; }
 
-    void emit_code(rv::Compiler *c) const override {
+    IsTerminator emit_code(rv::Compiler *c) const override {
         c->strs.emplace_back(_str);
         // call BString
+        return IsTerminator::No;
     }
 };
 
@@ -109,16 +111,17 @@ public:
 
 LEAF(StoreStack, Instruction)
 public:
-    void emit_code(rv::Compiler *c) const override {
+    IsTerminator emit_code(rv::Compiler *c) const override {
         auto value_loc = c->st.pop();
         auto ptr_loc = c->st.pop();
         c->st.push(value_loc);
         c->cb.symb_emit_sd(value_loc, ptr_loc, 0);
+        return IsTerminator::No;
     }
 };
 LEAF(StoreArray, Instruction) };
 LEAF(End, Instruction)
-    void emit_code(rv::Compiler *c) const override {
+    IsTerminator emit_code(rv::Compiler *c) const override {
         DCHECK(c->current_frame.has_value()) << "no current frame in End instruction";
         size_t _locc = c->current_frame->locals_count;
         c->cb.symb_emit_mv(rv::Register::arg(0), c->st.pop());
@@ -130,14 +133,16 @@ LEAF(End, Instruction)
         });
         // Return
         c->cb.emit_ret();
+        return IsTerminator::Yes;
     }
 };
 LEAF(Return, Instruction) };
 LEAF(Duplicate, Instruction) };
 LEAF(Drop, Instruction)
     public:
-    void emit_code(rv::Compiler *c) const override {
+    IsTerminator emit_code(rv::Compiler *c) const override {
         c->st.pop();
+        return IsTerminator::No;
     }
 };
 LEAF(Swap, Instruction) };
@@ -148,9 +153,10 @@ private:
 
 public:
     Jump(int target) : _target(target) {}
-    void emit_code(rv::Compiler *c) const override {
+    IsTerminator emit_code(rv::Compiler *c) const override {
         c->cb.emit_j(c->cb.label_for_ip(_target));
-        c->add_expected_stack_height(_target, c->st.top);
+        c->bb_begin(_target, c->st.top);
+        return IsTerminator::Yes;
     }
 };
 LEAF(ConditionalJump, Instruction)
@@ -161,7 +167,7 @@ private:
 public:
     ConditionalJump(int target, bool zero) : _target(target), _zero(zero) {}
 
-    void emit_code(rv::Compiler *c) const override {
+    IsTerminator emit_code(rv::Compiler *c) const override {
         auto const reg = c->cb.to_reg(c->st.pop(), rv::Register::temp1());
         c->cb.emit_srai(reg, reg, 1);
         c->cb.emit_cj(
@@ -170,7 +176,8 @@ public:
             rv::Register::zero(),
             c->cb.label_for_ip(_target)
         );
-        c->add_expected_stack_height(_target, c->st.top);
+        c->bb_begin(_target, c->st.top);
+        return IsTerminator::No;
     }
 };
 LEAF(Begin, Instruction)
@@ -180,7 +187,7 @@ private:
 public:
     Begin(const std::string& function_name, int argc, int locc) : _function_name(function_name), _argc(argc), _locc(locc) {}
 
-    void emit_code(rv::Compiler *c) const override {
+    IsTerminator emit_code(rv::Compiler *c) const override {
         c->cb.emit_label(_function_name);
         if (_function_name == "main") {
             c->cb.emit(c->premain());
@@ -195,6 +202,7 @@ public:
         // Save sp
         // c->cb.emit_sd(rv::Register::sp(), rv::Register::sp(), -(_locc + 13) * rv::WORD_SIZE);
         c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -(_locc + 12) * rv::WORD_SIZE);
+        return IsTerminator::No;
     }
 };
 
@@ -220,7 +228,7 @@ private:
 public:
     Call(std::string function_name, int argc) : _function_name(function_name), _argc(argc) {}
 
-    void emit_code(rv::Compiler *c) const override {
+    IsTerminator emit_code(rv::Compiler *c) const override {
         size_t alignment = (c->current_frame->locals_count + c->st.spilled_count() + _argc) & 1;
         // Skip spilled registers
         c->cb.emit_comment(std::format("Skip spilled registers {}", c->st.spilled_count()));
@@ -273,6 +281,7 @@ public:
         // Restore ra
         c->cb.emit_ld(rv::Register::ra(), rv::Register::sp(), -rv::WORD_SIZE);
         c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), c->st.spilled_count() * rv::WORD_SIZE);
+        return IsTerminator::No;
     }
 };
 
@@ -303,8 +312,9 @@ private:
     size_t _line;
 public:
     Line(int line) : _line(line) {}
-    void emit_code(rv::Compiler *) const override {
+    IsTerminator emit_code(rv::Compiler *) const override {
         // do nothing
+        return IsTerminator::No;
     }
 };
 
@@ -314,7 +324,7 @@ private:
 public:
     Binop(int op) : _op(op) {}
 
-    void emit_code(rv::Compiler *c) const override {
+    IsTerminator emit_code(rv::Compiler *c) const override {
         auto second_loc = c->st.pop();
         auto first_loc = c->st.pop();
         auto dest_loc = c->st.alloc();
@@ -332,6 +342,7 @@ public:
         }
         c->cb.symb_emit_slli(dest_loc, dest_loc, 1);
         c->cb.symb_emit_addi(dest_loc, dest_loc, 1);
+        return IsTerminator::No;
     }
 };
 
@@ -341,13 +352,14 @@ private:
 public:
     Load(LocationEntry loc) : _loc(loc) {}
 
-    void emit_code(rv::Compiler *c) const override {
+    IsTerminator emit_code(rv::Compiler *c) const override {
         switch (_loc.kind) {
 
-        case Location_Global:
+        case Location_Global:{
             DCHECK_LT(_loc.index , c->globals_count) << "global index out of bounds";
             c->cb.symb_emit_ld(c->st.alloc(), {SymbolicLocationType::Register, rv::Register::gp().regno}, _loc.index * rv::WORD_SIZE);
-            return;
+            break;
+        };
 
         case Location_Local:
         case Location_Arg:
@@ -355,6 +367,7 @@ public:
             LOG(FATAL) << std::format("Unimplemented {:s} (loc.kind = {:d})", name(), to_underlying(_loc.kind));
             break;
         }
+        return IsTerminator::No;
     }
 };
 
@@ -372,17 +385,19 @@ private:
 public:
     Store(LocationEntry loc) : _loc(loc) {}
 
-    void emit_code(rv::Compiler *c) const override {
+    IsTerminator emit_code(rv::Compiler *c) const override {
         auto value = c->st.peek();
         switch (_loc.kind) {
-        case Location_Global:
+        case Location_Global:{
             c->cb.symb_emit_sd(value, {SymbolicLocationType::Register, rv::Register::gp().regno}, _loc.index * rv::WORD_SIZE);
-            return;
+            break;
+        }
         case Location_Local:
         case Location_Arg:
         case Location_Captured:
             LOG(FATAL) << std::format("Unimplemented {:s} (loc.kind = {:d})", name(), to_underlying(_loc.kind));
         }
+        return IsTerminator::No;
     }
 };
 
@@ -395,13 +410,15 @@ public:
 
 LEAF(BuiltinRead, Instruction)
 public:
-    void emit_code(rv::Compiler *c) const override {
+    IsTerminator emit_code(rv::Compiler *c) const override {
         Call("Lread", 0).emit_code(c);
+        return IsTerminator::No;
     }
 };
 LEAF(BuiltinWrite, Instruction)
-    void emit_code(rv::Compiler *c) const override {
+    IsTerminator emit_code(rv::Compiler *c) const override {
         Call("Lwrite", 1).emit_code(c);
+        return IsTerminator::No;
     }
 };
 LEAF(BuiltinLength, Instruction) };

@@ -18,18 +18,45 @@ public:
     CodeBuffer cb{};
     std::vector<char const*> strs{};
     size_t globals_count{};
-    struct {
-        std::unordered_map<size_t, size_t> expected, actual;
-    } stack_hieghts;
 
-    void add_expected_stack_height(size_t offset, size_t expected) {
-        cb.emit_comment(std::format("Expectings stack height {:d} at {:#x}", expected, offset));
-        auto& map = stack_hieghts.expected;
-        if (map.contains(offset)) {
-            // DCHECK_EQ(map.at(offset), expected) << std::format("Offset = {:#x}", offset);
+    // Instruction address (in bytecode) to sumbolic stack size mapping
+    std::unordered_map<size_t, size_t> done;
+    std::unordered_map<size_t, size_t> todo;
+
+    void bb_begin(size_t offset, size_t stack_height) {
+        auto as_done = done.find(offset);
+        if (as_done == done.end()) {
+            cb.emit_comment(std::format("Expectings stack height {:d} at {:#x}", stack_height, offset));
+            auto [as_todo, is_new] = todo.emplace(offset, stack_height);
+            DCHECK_EQ(as_todo->second, stack_height) << std::format("offset = {:#x}", offset);
         } else {
-            map[offset] = expected;
+            DCHECK_EQ(as_done->second, stack_height) << std::format("offset = {:#x}", offset);
         }
+    }
+
+    void inst_begin(size_t offset) {
+        size_t const stack_height = st.top;
+        auto [as_done, inserted] = done.emplace(offset, stack_height);
+        DCHECK_EQ(as_done->second, stack_height) << std::format("offset = {:#x}", offset);
+        auto const label = cb.label_for_ip(offset);
+        if (inserted) {
+            cb.emit_label(label);
+        } else {
+            cb.emit_comment(label);
+        }
+    }
+
+    bool should_emit(size_t offset) const {
+        auto emitted = done.find(offset);
+        if (emitted == done.end()) {
+            return true;
+        }
+        DCHECK_EQ(emitted->second, st.top) << std::format("offset = {:#x}", offset);
+        return false;
+    }
+
+    void debug_stack_height() {
+        cb.emit_comment(std::format("stack height = {:d}", st.top));
     }
 
     Compiler(size_t globals)

@@ -12,15 +12,8 @@ namespace lama::rv {
     class CodeBuffer {
         private:
         std::vector<std::string> _code;
-        size_t ip_;
         public:
         CodeBuffer() = default;
-
-        size_t get_ip() const noexcept{ return ip_; }
-        void set_ip(size_t ip) {
-            ip_=ip;
-            emit_label(label_for_ip(ip));
-        }
 
         static std::string label_for_ip(size_t ip){
             return std::format("lamabc_{:#x}", ip);

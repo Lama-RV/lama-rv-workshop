@@ -9,9 +9,19 @@ namespace lama {
 class Instruction {
 public:
     virtual char const* name() const = 0;
-    virtual void emit_code(rv::Compiler*) const {
-        LOG(ERROR) << "emit_code unimplemented for " << name();
+
+    enum class IsTerminator {
+        No,
+        Yes,
     };
+
+    // True = terminator
+    // False = not a terminator, keep going.
+    virtual IsTerminator emit_code(rv::Compiler*) const {
+        LOG(ERROR) << "emit_code unimplemented for " << name();
+        return IsTerminator::No;
+    };
+
     virtual ~Instruction() = default;
 };
 
