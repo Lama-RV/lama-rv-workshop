@@ -7,7 +7,7 @@
 
 namespace lama {
 
-#define TODO() LOG(FATAL) << "Not implemented yet"
+#define TODO() LOG(FATAL) << "Not implemented yet\t"
 
 void Const::emit_code(rv::Compiler* c) const {
     auto loc = c->st.alloc();
@@ -26,7 +26,7 @@ void Const::emit_code(rv::Compiler* c) const {
 
 void String::emit_code(rv::Compiler* c) const {
     c->strs.emplace_back(_str);
-    // call BString
+    TODO() << "call BString";
 }
 
 void SExpression::emit_code(rv::Compiler*) const {
