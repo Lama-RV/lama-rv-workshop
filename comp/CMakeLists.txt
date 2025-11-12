@@ -67,7 +67,7 @@ else ()
 endif ()
 
 # Dependencies
-find_package(glog 0.7 REQUIRED)
+find_package(glog 0.6 REQUIRED)
 
 add_library(bytefile src/bytefile.cpp)
 target_include_directories(bytefile PUBLIC include)
