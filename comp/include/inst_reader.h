@@ -124,18 +124,21 @@ public:
         }
 
         case Opcode_Begin: {
-            // fprintf(stderr, "Reading function %s at offset %d, pub_offset: %d\n", get_public_name(file,
-            // function_index), get_offset(), get_public_offset(file, function_index));
-            DCHECK_EQ(get_public_offset(file, function_index), get_offset() - 1) << "function offset mismatch";
-            return std::make_unique<Begin>(
-                std::string{get_public_name(file, function_index++)}, read_int(), read_int()
-            );
-            break;
+            auto const index = function_index++;
+            auto const is_public = index < file->public_symbols_number;
+            size_t const offset = get_offset() - 1;
+            auto const argc = read_int();
+            auto const locc = read_int();
+            if (is_public) {
+                DCHECK_EQ(get_public_offset(file, index), offset) << "function offset mismatch";
+                return std::make_unique<Begin>(std::string{get_public_name(file, index)}, argc, locc);
+            } else {
+                return std::make_unique<Begin>(offset, argc, locc);
+            }
         }
 
         case Opcode_CBegin: {
             return std::make_unique<Begin>("closure", read_int(), read_int());
-            break;
         }
 
         case Opcode_Closure: {
@@ -155,8 +158,9 @@ public:
         }
 
         case Opcode_Call: {
-            DCHECK(function_names.contains(read_int())) << "unknown function called";
-            return std::make_unique<Call>(function_names[read_int()], read_int());
+            auto const callee = read_int();
+            auto const argc = read_int();
+            return std::make_unique<Call>(callee, argc);
         }
 
         case Opcode_Tag: {
