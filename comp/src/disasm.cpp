@@ -1,230 +1,266 @@
-#include <stdio.h>
+#include <glog/logging.h>
+#include <cstdio>
+#include <cstring>
+#include <format>
+#include <iostream>
 #include "bytefile.h"
 
-void disassemble (FILE *f, bytefile *bf) {
-  
-# define INT    (ip += sizeof (int), *(int*)(ip - sizeof (int)))
-# define BYTE   *ip++
-# define STRING get_string (bf, INT)
-# define FAIL   fprintf (stderr, "ERROR: invalid opcode %d-%d\n", h, l)
-  
-  char *ip     = bf->code_ptr;
-  const char *ops [] = {"+", "-", "*", "/", "%", "<", "<=", ">", ">=", "==", "!=", "&&", "!!"};
-  const char *pats[] = {"=str", "#string", "#array", "#sexp", "#ref", "#val", "#fun"};
-  const char *lds [] = {"LD", "LDA", "ST"};
-  do {
-    char x = BYTE,
-         h = (x & 0xF0) >> 4,
-         l = x & 0x0F;
+void disassemble(std::ostream& f, bytefile* bf) {
+    char* ip = bf->code_ptr;
+    char const* ops[] = {"+", "-", "*", "/", "%", "<", "<=", ">", ">=", "==", "!=", "&&", "!!"};
+    char const* pats[] = {"=str", "#string", "#array", "#sexp", "#ref", "#val", "#fun"};
+    char const* lds[] = {"LD", "LDA", "ST"};
 
-    fprintf (f, "0x%.8lx:\t", ip-bf->code_ptr-1);
-    
-    switch (h) {
-    case 15:
-      goto stop;
-      
-    /* BINOP */
-    case 0:
-      fprintf (f, "BINOP\t%s", ops[l-1]);
-      break;
-      
-    case 1:
-      switch (l) {
-      case  0:
-        fprintf (f, "CONST\t%d", INT);
-        break;
-        
-      case  1:
-        fprintf (f, "STRING\t%s", STRING);
-        break;
-          
-      case  2:
-        fprintf (f, "SEXP\t%s ", STRING);
-        fprintf (f, "%d", INT);
-        break;
-        
-      case  3:
-        fprintf (f, "STI");
-        break;
-        
-      case  4:
-        fprintf (f, "STA");
-        break;
-        
-      case  5:
-        fprintf (f, "JMP\t0x%.8x", INT);
-        break;
-        
-      case  6:
-        fprintf (f, "END");
-        break;
-        
-      case  7:
-        fprintf (f, "RET");
-        break;
-        
-      case  8:
-        fprintf (f, "DROP");
-        break;
-        
-      case  9:
-        fprintf (f, "DUP");
-        break;
-        
-      case 10:
-        fprintf (f, "SWAP");
-        break;
+    auto INT = [&ip]() -> int {
+        int result;
+        std::memcpy(&result, ip, sizeof(int));
+        ip += sizeof(int);
+        return result;
+    };
+    auto BYTE = [&ip]() -> char { return *(ip++); };
+    auto STRING = [bf, &INT] { return get_string(bf, INT()); };
 
-      case 11:
-        fprintf (f, "ELEM");
-        break;
-        
-      default:
-        FAIL;
-      }
-      break;
-      
-    case 2:
-    case 3:
-    case 4:
-      fprintf (f, "%s\t", lds[h-2]);
-      switch (l) {
-      case 0: fprintf (f, "G(%d)", INT); break;
-      case 1: fprintf (f, "L(%d)", INT); break;
-      case 2: fprintf (f, "A(%d)", INT); break;
-      case 3: fprintf (f, "C(%d)", INT); break;
-      default: FAIL;
-      }
-      break;
-      
-    case 5:
-      switch (l) {
-      case  0:
-        fprintf (f, "CJMPz\t0x%.8x", INT);
-        break;
-        
-      case  1:
-        fprintf (f, "CJMPnz\t0x%.8x", INT);
-        break;
-        
-      case  2:
-        fprintf (f, "BEGIN\t%d ", INT);
-        fprintf (f, "%d", INT);
-        break;
-        
-      case  3:
-        fprintf (f, "CBEGIN\t%d ", INT);
-        fprintf (f, "%d", INT);
-        break;
-        
-      case  4:
-        fprintf (f, "CLOSURE\t0x%.8x", INT);
-        {int n = INT;
-         for (int i = 0; i<n; i++) {
-         switch (BYTE) {
-           case 0: fprintf (f, "G(%d)", INT); break;
-           case 1: fprintf (f, "L(%d)", INT); break;
-           case 2: fprintf (f, "A(%d)", INT); break;
-           case 3: fprintf (f, "C(%d)", INT); break;
-           default: FAIL;
-         }
-         }
-        };
-        break;
-          
-      case  5:
-        fprintf (f, "CALLC\t%d", INT);
-        break;
-        
-      case  6:
-        fprintf (f, "CALL\t0x%.8x ", INT);
-        fprintf (f, "%d", INT);
-        break;
-        
-      case  7:
-        fprintf (f, "TAG\t%s ", STRING);
-        fprintf (f, "%d", INT);
-        break;
-        
-      case  8:
-        fprintf (f, "ARRAY\t%d", INT);
-        break;
-        
-      case  9:
-        fprintf (f, "FAIL\t%d", INT);
-        fprintf (f, "%d", INT);
-        break;
-        
-      case 10:
-        fprintf (f, "LINE\t%d", INT);
-        break;
+    while (true) {
+        char const x = BYTE();
+        char const h = (x & 0xF0) >> 4;
+        char const l = x & 0x0F;
 
-      default:
-        FAIL;
-      }
-      break;
-      
-    case 6:
-      fprintf (f, "PATT\t%s", pats[l]);
-      break;
+        auto FAIL = [h, l] { std::cerr << std::format("ERROR: invalid opcode {:d}-{:d}", h, l) << std::endl; };
 
-    case 7: {
-      switch (l) {
-      case 0:
-        fprintf (f, "CALL\tLread");
-        break;
-        
-      case 1:
-        fprintf (f, "CALL\tLwrite");
-        break;
+        f << std::format("{:#010x}:\t", ip - bf->code_ptr - 1);
 
-      case 2:
-        fprintf (f, "CALL\tLlength");
-        break;
+        switch (h) {
+        case 15:
+            goto stop;
 
-      case 3:
-        fprintf (f, "CALL\tLstring");
-        break;
+        /* BINOP */
+        case 0:
+            f << std::format("BINOP\t{:s}", ops[l - 1]);
+            break;
 
-      case 4:
-        fprintf (f, "CALL\tBarray\t%d", INT);
-        break;
+        case 1:
+            switch (l) {
+            case 0:
+                f << std::format("CONST\t{:d}", INT());
+                break;
 
-      default:
-        FAIL;
-      }
+            case 1:
+                f << std::format("STRING\t{:s}", STRING());
+                break;
+
+            case 2:
+                f << std::format("SEXP\t{:s} ", STRING());
+                f << std::format("{:d}", INT());
+                break;
+
+            case 3:
+                f << "STI";
+                break;
+
+            case 4:
+                f << "STA";
+                break;
+
+            case 5:
+                f << std::format("JMP\t{:#010x}", INT());
+                break;
+
+            case 6:
+                f << "END";
+                break;
+
+            case 7:
+                f << "RET";
+                break;
+
+            case 8:
+                f << "DROP";
+                break;
+
+            case 9:
+                f << "DUP";
+                break;
+
+            case 10:
+                f << "SWAP";
+                break;
+
+            case 11:
+                f << "ELEM";
+                break;
+
+            default:
+                FAIL();
+            }
+            break;
+
+        case 2:
+        case 3:
+        case 4:
+            f << std::format("{:s}\t", lds[h - 2]);
+            switch (l) {
+            case 0:
+                f << std::format("G({:d})", INT());
+                break;
+            case 1:
+                f << std::format("L({:d})", INT());
+                break;
+            case 2:
+                f << std::format("A({:d})", INT());
+                break;
+            case 3:
+                f << std::format("C({:d})", INT());
+                break;
+            default:
+                FAIL();
+            }
+            break;
+
+        case 5:
+            switch (l) {
+            case 0:
+                f << std::format("CJMPz\t{:#010x}", INT());
+                break;
+
+            case 1:
+                f << std::format("CJMPnz\t{:#010x}", INT());
+                break;
+
+            case 2:
+                f << std::format("BEGIN\t{:d} ", INT());
+                f << std::format("{:d}", INT());
+                break;
+
+            case 3:
+                f << std::format("CBEGIN\t{:d} ", INT());
+                f << std::format("{:d}", INT());
+                break;
+
+            case 4:
+                f << std::format("CLOSURE\t{:#010x}", INT());
+                {
+                    int n = INT();
+                    for (int i = 0; i < n; i++) {
+                        switch (BYTE()) {
+                        case 0:
+                            f << std::format("G({:d})", INT());
+                            break;
+                        case 1:
+                            f << std::format("L({:d})", INT());
+                            break;
+                        case 2:
+                            f << std::format("A({:d})", INT());
+                            break;
+                        case 3:
+                            f << std::format("C({:d})", INT());
+                            break;
+                        default:
+                            FAIL();
+                        }
+                    }
+                };
+                break;
+
+            case 5:
+                f << std::format("CALLC\t{:d}", INT());
+                break;
+
+            case 6:
+                f << std::format("CALL\t{:#010x} ", INT());
+                f << std::format("{:d}", INT());
+                break;
+
+            case 7:
+                f << std::format("TAG\t{:s} ", STRING());
+                f << std::format("{:d}", INT());
+                break;
+
+            case 8:
+                f << std::format("ARRAY\t{:d}", INT());
+                break;
+
+            case 9:
+                f << std::format("FAIL\t{:d}", INT());
+                f << std::format("{:d}", INT());
+                break;
+
+            case 10:
+                f << std::format("LINE\t{:d}", INT());
+                break;
+
+            default:
+                FAIL();
+            }
+            break;
+
+        case 6:
+            f << std::format("PATT\t{:s}", pats[l]);
+            break;
+
+        case 7: {
+            switch (l) {
+            case 0:
+                f << "CALL\tLread";
+                break;
+
+            case 1:
+                f << "CALL\tLwrite";
+                break;
+
+            case 2:
+                f << "CALL\tLlength";
+                break;
+
+            case 3:
+                f << "CALL\tLstring";
+                break;
+
+            case 4:
+                f << std::format("CALL\tBarray\t{:d}", INT());
+                break;
+
+            default:
+                FAIL();
+            }
+        } break;
+
+        default:
+            FAIL();
+        }
+
+        f << std::endl;
     }
-    break;
-      
-    default:
-      FAIL;
-    }
-
-    fprintf (f, "\n");
-  }
-  while (1);
- stop: fprintf (f, "<end>\n");
+stop:
+    f << "<end>" << std::endl;
 }
 
 /* Dumps the contents of the file */
-void dump_file (FILE *f, bytefile *bf) {
-  int i;
-  
-  fprintf (f, "String table size       : %d\n", bf->stringtab_size);
-  fprintf (f, "Global area size        : %d\n", bf->global_area_size);
-  fprintf (f, "Number of public symbols: %d\n", bf->public_symbols_number);
-  fprintf (f, "Public symbols          :\n");
+void dump_file(std::ostream& f, bytefile* bf) {
+    int i;
 
-  for (i=0; i < bf->public_symbols_number; i++) 
-    fprintf (f, "   0x%.8x: %s\n", get_public_offset (bf, i), get_public_name (bf, i));
+    f << std::format(
+             "String table size       : {:d}\n"
+             "Global area size        : {:d}\n"
+             "Number of public symbols: {:d}\n"
+             "Public symbols          :",
+             bf->stringtab_size, bf->global_area_size, bf->public_symbols_number
+         )
+      << std::endl;
 
-  fprintf (f, "Code:\n");
-  disassemble (f, bf);
+    for (i = 0; i < bf->public_symbols_number; i++) {
+        f << std::format("   {:#010x}: {:s}", get_public_offset(bf, i), get_public_name(bf, i)) << std::endl;
+    }
+
+    f << "Code:" << std::endl;
+    disassemble(f, bf);
 }
 
-int main (int argc, char* argv[]) {
-  char *ef = NULL;
-  bytefile *f = read_file (argv[1]);
-  dump_file (stdout, f);
-  return 0;
+int main(int argc, char* argv[]) {
+    FLAGS_logtostderr = true;
+    google::InitGoogleLogging(argv[0]);
+    CHECK_EQ(argc, 2) << "Please, provide input file name";
+    bytefile* f = read_file(argv[1]);
+    dump_file(std::cout, f);
+    close_file(f);
+    return 0;
 }

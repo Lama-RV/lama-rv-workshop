@@ -1,95 +1,69 @@
-#include <cerrno>
+#include <glog/logging.h>
 #include <cstddef>
 #include <cstring>
 
 #include "bytefile.h"
-#include "error.h"
 
-bytefile *read_file(const char *fname) {
-    FILE *f = fopen(fname, "rb");
-    long size;
-    bytefile *file;
+bytefile* read_file(char const* fname) {
+    auto f = fopen(fname, "rb");
 
-    if (f == 0) {
-        FAIL(1, "%s\n", strerror(errno));
-    }
+    PCHECK(f != nullptr);
 
-    if (fseek(f, 0, SEEK_END) == -1) {
-        FAIL(1, "%s\n", strerror(errno));
-    }
+    PCHECK(fseek(f, 0, SEEK_END) != -1);
 
-    size_t total_size = offsetof(bytefile, stringtab_size) + (size = ftell(f));
-    file = (bytefile *)malloc(total_size);
-    file->size = total_size;
-
-    if (file == 0) {
-        FAIL(1, "*** FAILURE: unable to allocate memory.\n");
-    }
+    auto const size = ftell(f);
+    size_t const total_size = offsetof(bytefile, stringtab_size) + size;
+    auto file = (bytefile*)malloc(total_size);
+    CHECK_NOTNULL(file)->size = total_size;
 
     rewind(f);
 
-    if (size != fread(&file->stringtab_size, 1, size, f)) {
-        FAIL(1, "%s\n", strerror(errno));
-    }
+    PCHECK(fread(&file->stringtab_size, 1, size, f) == size);
 
     fclose(f);
 
-    ASSERT(file->stringtab_size >= 0, 1, "Negative string section size");
-    ASSERT(file->public_symbols_number >= 0, 1, "Negative public symbols number");
-    ASSERT(file->global_area_size >= 0, 1, "Negative global area size");
+    CHECK_GE(file->stringtab_size, 0) << "Negative string section size";
+    CHECK_GE(file->public_symbols_number, 0) << "Negative public symbols number";
+    CHECK_GE(file->global_area_size, 0) << "Negative global area size";
 
-    int total_sections_size = file->stringtab_size + file->public_symbols_number * 2 * sizeof(int) + file->global_area_size * sizeof(int);
+    int total_sections_size =
+        file->stringtab_size + file->public_symbols_number * 2 * sizeof(int) + file->global_area_size * sizeof(int);
 
-    ASSERT(total_sections_size + sizeof(bytefile) <= file->size,
-           1, "Invalid sections layout");
+    CHECK_LE(total_sections_size + sizeof(bytefile), file->size) << "Invalid sections layout";
 
     file->string_ptr = &file->buffer[file->public_symbols_number * 2 * sizeof(int)];
-    file->public_ptr = (int *)file->buffer;
+    file->public_ptr = (int*)file->buffer;
     file->code_ptr = &file->string_ptr[file->stringtab_size];
-    file->global_ptr = (int *)malloc(file->global_area_size * sizeof(int));
+    file->global_ptr = (int*)malloc(file->global_area_size * sizeof(int));
 
     return file;
 }
 
-const char *get_string(const bytefile *f, int pos) {
-    ASSERT(pos >= 0, 1,
-           "Negative string index %d",
-           pos);
-    ASSERT(pos < f->stringtab_size, 1,
-           "String #%d does not exist (%d strings in file)",
-           pos, f->stringtab_size);
+char const* get_string(bytefile const* f, int pos) {
+    CHECK_GE(pos, 0) << "Negative string index";
+    CHECK_LT(pos, f->stringtab_size) << "Index out of bounds";
     return &f->string_ptr[pos];
 }
 
-const char *get_public_name(const bytefile *f, int i) {
-    ASSERT(i >= 0, 1,
-           "Negative public symbol index %d",
-           i);
-    ASSERT(i < f->public_symbols_number, 1,
-           "Public symbol #%d does not exist (%d public symbols in file)",
-           i, f->public_symbols_number);
+char const* get_public_name(bytefile const* f, int i) {
+    CHECK_GE(i, 0) << "Negative public symbol index";
+    CHECK_LT(i, f->public_symbols_number) << "Index out of bounds";
     return get_string(f, f->public_ptr[i * 2]);
 }
 
-int get_public_offset(const bytefile *f, int i) {
-    ASSERT(i >= 0, 1,
-           "Negative public symbol index %d",
-           i);
-    ASSERT(i < f->public_symbols_number, 1,
-           "Public symbol #%d does not exist (%d public symbols in file)",
-           i, f->public_symbols_number);
+int get_public_offset(bytefile const* f, int i) {
+    CHECK_GE(i, 0) << "Negative public symbol index";
+    CHECK_LT(i, f->public_symbols_number) << "Index out of bounds";
     int offset = f->public_ptr[i * 2 + 1];
-    ASSERT(offset < f->size, 1,
-           "Invalid public offset: %d > %d (file size)",
-           offset, f->size);
+    CHECK_LE(offset, f->size) << "Invalid public offset";
     return offset;
 }
 
-int get_code_size(const bytefile *f) {
-    return f->size - (f->code_ptr - (const char *)f);
+int get_code_size(bytefile const* f) {
+    return f->size - (f->code_ptr - (char const*)f);
 }
 
-void close_file(bytefile *f) {
-  free(f->global_ptr);
-  free(f);
+void close_file(bytefile* f) {
+    free(f->global_ptr);
+    free(f);
 }

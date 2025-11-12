@@ -1,5 +1,8 @@
 #pragma once
+#include <cstddef>
+#include <format>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "symb_stack.h"
@@ -172,6 +175,22 @@ namespace lama::rv {
 
         void emit_comment(const std::string& comment) {
             emit(std::format("# {}", comment));
+        }
+
+        void emit_j(std::string_view target_label) {
+            emit(std::format("j {}", target_label));
+        }
+
+        void emit_cj(bool on_eq, Register const& r1, Register const& r2, std::string_view target_label){
+            emit(
+                std::format(
+                    "{:s}\t{},\t{},\t{}",
+                    on_eq?"beq":"bne",
+                    r1,
+                    r2,
+                    target_label
+                )
+            );
         }
 
         inline Register to_reg(const SymbolicLocation& loc, const Register& temp) {

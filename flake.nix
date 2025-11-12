@@ -13,18 +13,20 @@
       lamac = import ./nix/lamac.nix { inherit pkgs; };
       pkgsRV = pkgs.pkgsCross.riscv64;
     in {
-      devShell = pkgsRV.mkShell {
+      devShell = pkgs.mkShell {
         name = "lama-rv";
 
-        nativeBuildInputs = with pkgs; [
-          qemu
+        packages = with pkgs; [
+          qemu-user
           lamac
           gcc
           clang-tools
           cmake
           gdb
-        ];
+          glog
 
+          pkgsRV.stdenv.cc
+        ];
       };
     });
 }

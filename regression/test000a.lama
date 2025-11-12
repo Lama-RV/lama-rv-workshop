@@ -1,0 +1,3 @@
+var n = read ();
+
+if n >= 3 then write (n) fi
