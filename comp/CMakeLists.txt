@@ -73,10 +73,15 @@ add_library(bytefile src/bytefile.cpp)
 target_include_directories(bytefile PUBLIC include)
 target_link_libraries(bytefile glog::glog)
 
-add_executable(lama-rv src/lama_rv.cpp)
+add_executable(lama-rv
+    src/lama_rv.cpp
+    src/inst_reader.cpp
+    src/print.cpp
+    src/emit.cpp
+)
 target_include_directories(lama-rv PUBLIC include)
 target_link_libraries(lama-rv bytefile glog::glog)
 
-add_executable(disasm src/disasm.cpp src/bytefile.cpp)
+add_executable(disasm src/disasm.cpp)
 target_include_directories(disasm PUBLIC include)
 target_link_libraries(disasm bytefile glog::glog)

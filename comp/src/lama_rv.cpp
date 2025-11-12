@@ -50,6 +50,7 @@ int main(int argc, char const* argv[]) {
         if (!inst) {
             break;
         }
+        // DLOG(INFO) << *inst;
         auto [_pos, inserted] = instructions.emplace(offset, std::move(inst));
         DCHECK(inserted) << std::format("{:#x}", offset);
     }
