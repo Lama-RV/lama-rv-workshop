@@ -27,11 +27,11 @@ int main(int argc, char const* argv[]) {
         inst->emit_code(&c);
     }
 
+    std::cout << c.dump_asm() << std::endl;
+
+    close_file(file);
+
     for (auto const& [offset, expected] : c.stack_hieghts.expected) {
         DCHECK_EQ(expected, c.stack_hieghts.actual.at(offset)) << std::format("Offset = {:#x}", offset);
     }
-
-    std::cout << c.dump_asm();
-
-    close_file(file);
 }
