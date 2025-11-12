@@ -138,8 +138,8 @@ void BuiltinString::print(std::ostream&) const {
     TODO();
 }
 
-void BuiltinArray::print(std::ostream&) const {
-    TODO();
+void BuiltinArray::print(std::ostream& os) const {
+    os << "CALL\tBarray\t" << _len;
 }
 
 void Call::print(std::ostream& os) const {

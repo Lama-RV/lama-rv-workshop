@@ -155,7 +155,8 @@ std::unique_ptr<lama::Instruction> lama::InstReader::read_inst() {
                 return std::make_unique<BuiltinString>();
             }
             case LCall::Barray: {
-                return std::make_unique<BuiltinArray>();
+                size_t const len = read_int();
+                return std::make_unique<BuiltinArray>(len);
             }
             default:
                 LOG(FATAL) << std::format("Unknown LCall {:d}", l);

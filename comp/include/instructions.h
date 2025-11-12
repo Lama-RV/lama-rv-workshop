@@ -373,6 +373,11 @@ class BuiltinString : public Instruction {
 };
 
 class BuiltinArray : public Instruction {
+    size_t _len;
+
+public:
+    BuiltinArray(size_t len)
+        : _len(len) {}
     void print(std::ostream&) const override;
     void emit_code(rv::Compiler* c) const override;
 };

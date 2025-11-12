@@ -209,8 +209,8 @@ void BuiltinString::emit_code(rv::Compiler*) const {
     TODO();
 }
 
-void BuiltinArray::emit_code(rv::Compiler*) const {
-    TODO();
+void BuiltinArray::emit_code(rv::Compiler* c) const {
+    Call("BArray", _len).emit_code(c);
 }
 
 void Call::emit_code(rv::Compiler* c) const {
