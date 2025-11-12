@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y software-properties-common curl \
         gcc-13 g++-13 libstdc++-13-dev \
         make pkg-config \
         libc6-dev libncurses5-dev \
+        libgoogle-glog-dev \
         ocaml dune qemu-user gcc-riscv64-linux-gnu diffutils bash git \
         openssh-server \
     && ln -s /usr/bin/riscv64-linux-gnu-gcc /usr/local/bin/riscv64-unknown-linux-gnu-gcc \
