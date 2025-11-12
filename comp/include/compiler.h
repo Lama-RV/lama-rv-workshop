@@ -6,7 +6,6 @@
 #include <unordered_map>
 #include <vector>
 #include "code_buffer.h"
-#include "instruction.h"
 #include "symb_stack.h"
 
 namespace lama::rv {
