@@ -131,6 +131,9 @@ LEAF(End, Instruction)
         rv::Register::saved_apply([c, _locc](const rv::Register& r, int i) {
             c->cb.emit_ld(r, rv::Register::sp(), -(i + _locc) * rv::WORD_SIZE);
         });
+        if (c->current_frame->function_name == "main") {
+            c->cb.emit(c->postmain());
+        }
         // Return
         c->cb.emit_ret();
         return IsTerminator::Yes;
@@ -362,6 +365,9 @@ public:
         };
 
         case Location_Local:
+            DCHECK_LT(_loc.index , c->current_frame->locals_count) << "local index out of bounds";
+            c->cb.symb_emit_ld(c->st.alloc(), {SymbolicLocationType::Register, rv::Register::fp().regno}, -_loc.index * rv::WORD_SIZE);
+            break;
         case Location_Arg:
         case Location_Captured:
             LOG(FATAL) << std::format("Unimplemented {:s} (loc.kind = {:d})", name(), to_underlying(_loc.kind));
@@ -393,6 +399,8 @@ public:
             break;
         }
         case Location_Local:
+            c->cb.symb_emit_sd(value, {SymbolicLocationType::Register, rv::Register::fp().regno}, -_loc.index * rv::WORD_SIZE);
+            break;
         case Location_Arg:
         case Location_Captured:
             LOG(FATAL) << std::format("Unimplemented {:s} (loc.kind = {:d})", name(), to_underlying(_loc.kind));

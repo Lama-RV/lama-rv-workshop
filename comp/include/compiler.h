@@ -63,7 +63,15 @@ public:
         : globals_count(globals) {}
 
     std::string premain() {
-        return "la gp, globals";
+        return
+            R"(sd gp, saved_gp, t0
+la gp, globals)";
+    }
+
+    std::string postmain() {
+        return
+            R"(srai a0, a0, 1
+ld gp, saved_gp)";
     }
 
     std::string dump_asm() {
@@ -72,6 +80,8 @@ public:
 .section custom_data,"aw",@progbits
 .fill 128, 8, 1
 .data
+saved_gp:
+.dword 0
 globals:
 .fill {:d}, 8, 0
 .text

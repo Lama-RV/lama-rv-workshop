@@ -216,7 +216,6 @@ public:
                 default:
                     LOG(FATAL) << std::format("Unknown LCall {:d}", l);
                 }
-                break;
             }
             case HOpcode_Stop: {
                 return nullptr;
