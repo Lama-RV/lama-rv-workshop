@@ -124,7 +124,7 @@ LEAF(End, Instruction)
     IsTerminator emit_code(rv::Compiler *c) const override {
         DCHECK(c->current_frame.has_value()) << "no current frame in End instruction";
         size_t _locc = c->current_frame->locals_count;
-        c->cb.symb_emit_mv(rv::Register::arg(0), c->st.pop());
+        c->cb.emit_srai(rv::Register::arg(0), c->cb.to_reg(c->st.pop(), rv::Register::temp1()), 1);
         // Restore sp
         c->cb.emit_mv(rv::Register::sp(), rv::Register::fp());
         // Restore callee-saved registers (fp is included)

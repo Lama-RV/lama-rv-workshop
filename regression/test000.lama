@@ -1,3 +1,0 @@
-var n = read ();
-
-if n >= 0 then write (n) fi
