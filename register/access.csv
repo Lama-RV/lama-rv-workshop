@@ -1,0 +1,4 @@
+email,login,password,container_name,ssh_port,private_key
+alice@example.com,alice,OQKUMdaarntn,lama-alice,2200,containers/alice/ssh/id_rsa
+bob@example.com,bob,YL4scuOAEYu6,lama-bob,2201,containers/bob/ssh/id_rsa
+charlie@example.com,charlie,Y0cRs703072H,lama-charlie,2202,containers/charlie/ssh/id_rsa

@@ -1,0 +1,19 @@
+name: Lama CI
+
+on:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t lama-rv .
+
+      - name: Run tests inside container
+        run: |
+          docker run --rm lama-rv make -C regression check

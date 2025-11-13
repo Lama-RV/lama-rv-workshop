@@ -1,0 +1,28 @@
+services:
+  lama-rv:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lama-rv
+    volumes:
+      - ./:/workspace
+    working_dir: /workspace
+    platform: linux/amd64
+    environment:
+      LAMA_RV_BACKEND: /workspace/comp/src/lama_rv.cpp
+    ports:
+      - "2200:22"   
+    stdin_open: true
+    tty: true
+  
+  # lama-rv-benchmark:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: lama-rv-benchmark  
+  #   volumes:
+  #     - ./:/workspace
+  #   working_dir: /workspace
+  #   environment:
+  #     LAMA_RV_BACKEND: /workspace/comp/src/lama_rv.cpp
+  #   command: ["make", "-C", "performance", "check"]
