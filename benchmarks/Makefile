@@ -3,7 +3,7 @@ TESTS=$(sort $(basename $(wildcard *.lama)))
 LAMAC=lamac
 LAMA_RV_BACKEND?=../comp/build/lama-rv
 RV_TRIPLET=riscv64-unknown-linux-gnu
-SIM=qemu-riscv64 -L /usr/$(RV_TRIPLET) -plugin ./libinsn.so,inline=on -d plugin
+SIM=qemu-riscv64 -L /usr/$(RV_TRIPLET) -plugin ./plugin/libinsn.so,inline=on -d plugin
 RV_AS=$(RV_TRIPLET)-as
 RV_GCC=$(RV_TRIPLET)-gcc
 
@@ -11,7 +11,7 @@ RV_GCC=$(RV_TRIPLET)-gcc
 
 check: $(TESTS)
 
-$(TESTS): %: %.lama ../runtime/runtime.a
+$(TESTS): %: %.lama ../runtime/runtime.a plugin/libinsn.so
 	@echo "Running benchmark $@"
 	@$(LAMAC) -b $< # produce bytecode file
 	@$(LAMA_RV_BACKEND) $@.bc > $@.S # produce asm backend output
@@ -21,5 +21,9 @@ $(TESTS): %: %.lama ../runtime/runtime.a
 
 ../runtime/runtime.a:
 	+make -C ../runtime
+
+plugin/libinsn.so:
+	gcc -shared -fPIC -o plugin/libinsn.so plugin/insn.c `pkg-config --cflags --libs glib-2.0`
+
 clean:
-	rm -rf *.o *.S *.i *.bc *.elf
+	rm -rf *.o *.S *.i *.bc *.elf plugin/libinsn.so
