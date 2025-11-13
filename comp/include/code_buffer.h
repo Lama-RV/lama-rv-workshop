@@ -8,8 +8,6 @@
 #include "symb_stack.h"
 #include "register.h"
 
-#define DEBUG_COMMENTS 0
-
 namespace lama::rv {
 
     class CodeBuffer {
@@ -155,6 +153,12 @@ namespace lama::rv {
             emit(std::format("mv\t{},\t{}", dst_reg, src_reg));
         }
 
+        void symb_emit_mv(const SymbolicLocation& dst, const SymbolicLocation& src) {
+            auto src_reg = to_reg(src, rv::Register::temp1());
+            auto dst_reg = to_reg(dst, rv::Register::temp2());
+            emit(std::format("mv\t{},\t{}", dst_reg, src_reg));
+        }
+
         void symb_emit_la(const SymbolicLocation& dst, std::string_view label) {
             auto dst_reg = to_reg(dst, rv::Register::temp1());
             emit(std::format("la\t{},\t{}", dst_reg, label));
@@ -172,10 +176,8 @@ namespace lama::rv {
             emit(std::format("{}:", label));
         }
 
-        void emit_comment([[maybe_unused]] std::string_view comment) {
-#if DEBUG_COMMENTS
+        void emit_comment(std::string_view comment) {
             emit(std::format("# {}", comment));
-#endif
         }
 
         void emit_j(std::string_view target_label) {

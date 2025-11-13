@@ -36,7 +36,7 @@ void String::print(std::ostream& os) const {
 }
 
 void SExpression::print(std::ostream& os) const {
-    TODO();
+    os << "SEXP\t" << this->_name << " " << this->_size;
 }
 
 void StoreStack::print(std::ostream& os) const {
@@ -64,7 +64,7 @@ void Drop::print(std::ostream& os) const {
 }
 
 void Duplicate::print(std::ostream& os) const {
-    TODO();
+    os << "DUP";
 }
 
 void Swap::print(std::ostream& os) const {
@@ -95,7 +95,7 @@ void CallClosure::print(std::ostream& os) const {
 }
 
 void Tag::print(std::ostream& os) const {
-    TODO();
+    os << "TAG\t" << this->_tag << " " << this->_size;
 }
 
 void Array::print(std::ostream& os) const {
@@ -103,7 +103,7 @@ void Array::print(std::ostream& os) const {
 }
 
 void Fail::print(std::ostream& os) const {
-    TODO();
+    os << "FAIL\t" << _col << _line;
 }
 
 void Line::print(std::ostream& os) const {

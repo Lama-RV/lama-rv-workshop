@@ -1,4 +1,5 @@
 #include <glog/logging.h>
+#include <iostream>
 #include <memory>
 #include "inst_reader.h"
 #include "instructions.h"
@@ -18,7 +19,9 @@ std::unique_ptr<lama::Instruction> lama::InstReader::read_inst() {
     }
 
     case Opcode::SExp: {
-        return std::make_unique<SExpression>(read_string(), read_int());
+        auto str = read_string();
+        auto size = read_int();
+        return std::make_unique<SExpression>(str, size);
     }
 
     case Opcode::StI: {
@@ -106,7 +109,9 @@ std::unique_ptr<lama::Instruction> lama::InstReader::read_inst() {
     }
 
     case Opcode::Tag: {
-        return std::make_unique<Tag>(read_string(), read_int());
+        auto tag = read_string();
+        auto size = read_int();
+        return std::make_unique<Tag>(tag, size);
     }
 
     case Opcode::Array: {

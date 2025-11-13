@@ -21,7 +21,7 @@ disasm: | $(LAMA_RV_BUILD_DIR)
 runtime-rv:
 	$(MAKE) -C runtime build
 
-regression: build disasm
+regression: build bcdump disasm
 	$(MAKE) -C regression $(if $(value TEST),test$(TEST),check) LAMA_RV_BACKEND=$(LAMA_RV)
 
 clean:

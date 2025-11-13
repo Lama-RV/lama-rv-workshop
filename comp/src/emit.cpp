@@ -1,9 +1,9 @@
 #include <glog/logging.h>
-#include <ranges>
 #include <variant>
 #include "compiler.h"
 #include "cpp.h"
 #include "instructions.h"
+#include "runtime.h"
 
 namespace lama {
 
@@ -26,11 +26,12 @@ void Const::emit_code(rv::Compiler* c) const {
 
 void String::emit_code(rv::Compiler* c) const {
     c->cb.symb_emit_la(c->st.alloc(), std::format("string_{}", _ind));
-    Call("RVBstring", 1).emit_code(c);
+    c->compile_call("RVBstring", 1);
 }
 
-void SExpression::emit_code(rv::Compiler*) const {
-    TODO();
+void SExpression::emit_code(rv::Compiler* c) const {
+    c->cb.symb_emit_li(c->st.alloc(), lama::LtagHash(const_cast<char*>(_name)));
+    c->compile_call("RVBsexp", _size + 1, BOX(_size + 1));
 }
 
 void StoreStack::emit_code(rv::Compiler* c) const {
@@ -120,16 +121,21 @@ void CallClosure::emit_code(rv::Compiler*) const {
     TODO();
 }
 
-void Tag::emit_code(rv::Compiler*) const {
-    TODO();
+void Tag::emit_code(rv::Compiler* c) const {
+    c->cb.symb_emit_li(c->st.alloc(), LtagHash(_tag));
+    c->cb.symb_emit_li(c->st.alloc(), BOX(_size));
+    c->compile_call("Btag", 3);
 }
 
 void Array::emit_code(rv::Compiler*) const {
     TODO();
 }
 
-void Fail::emit_code(rv::Compiler*) const {
-    TODO();
+void Fail::emit_code(rv::Compiler* c) const {
+    c->cb.symb_emit_la(c->st.alloc(), "fname");
+    c->cb.symb_emit_li(c->st.alloc(), BOX(_line));
+    c->cb.symb_emit_li(c->st.alloc(), BOX(_col));
+    c->compile_call("Bmatch_failure", 4);
 }
 
 void Load::emit_code(rv::Compiler* c) const {
@@ -209,8 +215,8 @@ void BuiltinLength::emit_code(rv::Compiler* c) const {
     c->compile_call("Llength", 1);
 }
 
-void BuiltinString::emit_code(rv::Compiler*) const {
-    TODO();
+void BuiltinString::emit_code(rv::Compiler* c) const {
+    c->compile_call("RVLstring", 1);
 }
 
 void BuiltinArray::emit_code(rv::Compiler* c) const {

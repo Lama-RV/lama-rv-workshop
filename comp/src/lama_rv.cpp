@@ -10,13 +10,14 @@
 #include "instruction.h"
 
 void emit(
+    std::string_view filename,
     std::map<size_t, std::unique_ptr<lama::Instruction>> const& instructions,
     std::vector<std::string_view>&& strings,
     bytefile const* f,
     std::ostream& out
 ) {
     CHECK(!instructions.empty());
-    lama::rv::Compiler c{out, static_cast<size_t>(f->global_area_size), std::move(strings)};
+    lama::rv::Compiler c{filename, out, static_cast<size_t>(f->global_area_size), std::move(strings)};
     c.header();
     for (size_t i = 0; i < f->public_symbols_number; ++i) {
         c.add_jump_target(get_public_offset(f, i), 0);
@@ -69,6 +70,6 @@ int main(int argc, char const* argv[]) {
         auto [_pos, inserted] = instructions.emplace(offset, std::move(inst));
         DCHECK(inserted) << std::format("{:#x}", offset);
     }
-    emit(instructions, reader.read_strings(), file, std::cout);
+    emit(argv[1], instructions,reader.read_strings(), file, std::cout);
     close_file(file);
 }
