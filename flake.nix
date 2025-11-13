@@ -12,10 +12,10 @@
       pkgs = import nixpkgs { inherit system; };
       lamac = import ./nix/lamac.nix { inherit pkgs; };
       pkgsRV = pkgs.pkgsCross.riscv64;
-    in {
+    in rec {
       devShell = pkgs.mkShell {
         name = "lama-rv";
-
+        src = ./.;
         packages = with pkgs; [
           qemu-user
           lamac
@@ -28,6 +28,17 @@
           pkgsRV.stdenv.cc
         ];
       };
+
+      packages = {
+        docker-minimal = pkgs.dockerTools.buildNixShellImage {
+          drv = devShell;
+          name = "ghcr.io/khaser/lama-rv";
+          tag = "latest";
+        };
+
+        # TODO: docker-with-ssh-access desc
+      };
+
     });
 }
 
