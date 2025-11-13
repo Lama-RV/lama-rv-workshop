@@ -1,19 +1,22 @@
 #pragma once
 
 #include <format>
-#include <ranges>
 #include <optional>
+#include <ranges>
 #include <string>
 #include <unordered_map>
 #include <vector>
 #include "code_buffer.h"
-#include "symb_stack.h"
 #include "cpp.h"
+#include "symb_stack.h"
 
 namespace lama::rv {
 
+#define DEBUG_COMMENTS 0
+
 class Compiler {
 public:
+    std::string_view filename;
     std::optional<FrameInfo> current_frame{};
     SymbolicStack st{};
     CodeBuffer cb;
@@ -24,7 +27,7 @@ public:
     std::unordered_map<size_t, size_t> done;
     std::unordered_map<size_t, size_t> todo;
 
-    static std::string label_for_ip(size_t ip){
+    static std::string label_for_ip(size_t ip) {
         return std::format(".lbc_{:#x}", ip);
     }
 
@@ -61,10 +64,13 @@ public:
     }
 
     void debug_stack_height() {
+#if DEBUG_COMMENTS
         cb.emit_comment(std::format("stack height = {:d}", st.top));
+#endif
     }
 
-    void compile_call(std::variant<std::string, size_t> callee, size_t argc, std::optional<int64_t> opt_arg = std::nullopt) {
+    void
+    compile_call(std::variant<std::string, size_t> callee, size_t argc, std::optional<int64_t> opt_arg = std::nullopt) {
         size_t add_arg = opt_arg.has_value();
         argc += add_arg;
         size_t alignment = (current_frame->locals_count + st.spilled_count() + (argc > 8 ? argc - 8 : 0)) & 1;
@@ -131,10 +137,11 @@ public:
         cb.emit_addi(rv::Register::sp(), rv::Register::sp(), st.spilled_count() * rv::WORD_SIZE);
     }
 
-    Compiler(std::ostream& out, size_t globals, std::vector<std::string_view> &&strings)
-        : cb(out)
-        , strs(strings),
-        globals_count(globals) {}
+    Compiler(std::string_view file, std::ostream& out, size_t globals, std::vector<std::string_view>&& strings)
+        : filename(file)
+        , cb(out)
+        , strs(strings)
+        , globals_count(globals) {}
 
     void header() {
         std::string string_tab;
@@ -149,11 +156,11 @@ public:
 globals:
 .fill {:d}, 8, 0
 .align 8
+fname: .asciz "{}"
 {}
 .text
 .global main)",
-            globals_count,
-            string_tab
+            globals_count, filename, string_tab
         ));
     }
 
@@ -164,8 +171,7 @@ la t0, globals)";
     }
 
     std::string postmain() {
-        return
-            R"(srai a0, a0, 1)";
+        return R"(srai a0, a0, 1)";
     }
 };
 }  // namespace lama::rv

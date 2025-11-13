@@ -1,4 +1,5 @@
 #include <glog/logging.h>
+#include <iostream>
 #include <memory>
 #include "inst_reader.h"
 #include "instructions.h"

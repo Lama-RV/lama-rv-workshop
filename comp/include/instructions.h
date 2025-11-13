@@ -2,8 +2,7 @@
 
 #include "instruction.h"
 #include "opcode.h"
-
-#define BOX(x) (2 * x + 1)
+#include "runtime.h"
 
 namespace lama {
 
@@ -122,7 +121,7 @@ class Duplicate : public Instruction {
 public:
     void print(std::ostream&) const override;
     void emit_code(rv::Compiler* c) const override {
-        c->st.push(c->st.peek());
+        c->cb.symb_emit_mv(c->st.alloc(), c->st.peek());
     }
 };
 
@@ -249,7 +248,7 @@ public:
 
 class Tag : public Instruction {
 private:
-    char const* _tag;
+    const char * _tag;
     size_t _size;
 
 public:
@@ -284,6 +283,7 @@ public:
 
     void print(std::ostream&) const override;
     void emit_code(rv::Compiler* c) const override;
+    bool is_terminator() const override { return true; }
 };
 
 class Line : public Instruction {
