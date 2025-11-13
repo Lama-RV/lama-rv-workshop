@@ -14,7 +14,7 @@ class Compiler {
 public:
     std::optional<FrameInfo> current_frame{};
     SymbolicStack st{};
-    CodeBuffer cb{};
+    CodeBuffer cb;
     std::vector<char const*> strs{};
     size_t globals_count{};
 
@@ -23,7 +23,7 @@ public:
     std::unordered_map<size_t, size_t> todo;
 
     static std::string label_for_ip(size_t ip){
-        return std::format("lamabc_{:#x}", ip);
+        return std::format(".lbc_{:#x}", ip);
     }
 
     void add_jump_target(size_t offset, size_t stack_height) {
@@ -62,8 +62,25 @@ public:
         cb.emit_comment(std::format("stack height = {:d}", st.top));
     }
 
-    Compiler(size_t globals)
-        : globals_count(globals) {}
+    Compiler(std::ostream& out, size_t globals)
+        : cb(out)
+        , globals_count(globals) {}
+
+    void header() {
+        cb.emit(std::format(
+            R"(.section .rodata
+.section custom_data,"aw",@progbits
+.fill 128, 8, 1
+.data
+saved_gp:
+.dword 0
+globals:
+.fill {:d}, 8, 0
+.text
+.global main)",
+            globals_count
+        ));
+    }
 
     std::string premain() {
         return
@@ -75,23 +92,6 @@ la gp, globals)";
         return
             R"(srai a0, a0, 1
 ld gp, saved_gp)";
-    }
-
-    std::string dump_asm() {
-        return std::format(
-            R"(.section .rodata
-.section custom_data,"aw",@progbits
-.fill 128, 8, 1
-.data
-saved_gp:
-.dword 0
-globals:
-.fill {:d}, 8, 0
-.text
-.global main
-{:s})",
-            globals_count, cb.dump_asm()
-        );
     }
 };
 }  // namespace lama::rv

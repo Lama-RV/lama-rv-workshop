@@ -1,28 +1,23 @@
 #pragma once
-#include <cstddef>
+
 #include <format>
+#include <ostream>
 #include <string>
 #include <string_view>
 #include <vector>
 
 #include "symb_stack.h"
 #include "register.h"
+
+#define DEBUG_COMMENTS 1
+
 namespace lama::rv {
 
     class CodeBuffer {
         private:
-        std::vector<std::string> _code;
+        std::ostream& out_;
         public:
-        CodeBuffer() = default;
-
-        std::string dump_asm() {
-            std::string s;
-            s.reserve(1 << 14);
-            for (const std::string& str : _code) {
-                s += str + "\n";
-            }
-            return s;
-        }
+        CodeBuffer(std::ostream& os): out_(os) {};
 
         using SymbolicLocation = SymbolicStack::Loc;
 
@@ -173,8 +168,10 @@ namespace lama::rv {
             emit(std::format("{}:", label));
         }
 
-        void emit_comment(const std::string& comment) {
+        void emit_comment([[maybe_unused]] std::string_view comment) {
+#if DEBUG_COMMENTS
             emit(std::format("# {}", comment));
+#endif
         }
 
         void emit_j(std::string_view target_label) {
@@ -199,8 +196,8 @@ namespace lama::rv {
                 : Register{loc.number};
         }
 
-        void emit(std::string str) {
-            _code.emplace_back(str);
+        void emit(std::string_view str) {
+            out_ << str << std::endl;
         }
 
         private:

@@ -27,7 +27,7 @@ public:
         }
     }
 
-    void push(Loc loc) {
+    void push(Loc) {
         top++;
     }
 

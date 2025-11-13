@@ -1,124 +1,131 @@
 #pragma once
 
-enum HOpcode {
-    HOpcode_Binop = 0,
-    HOpcode_Ld = 2,
-    HOpcode_LdA = 3,
-    HOpcode_St = 4,
-    HOpcode_Patt = 6,
-    HOpcode_LCall = 7,
-    HOpcode_Stop = 15,
+#include <ostream>
+
+enum class HOpcode {
+    Binop = 0,
+    Ld = 2,
+    LdA = 3,
+    St = 4,
+    Patt = 6,
+    LCall = 7,
+    Stop = 15,
 };
 
-enum Binop {
-    Binop_Add = 1,
-    Binop_Sub = 2,
-    Binop_Mul = 3,
-    Binop_Div = 4,
-    Binop_Rem = 5,
-    Binop_LessThan = 6,
-    Binop_LessEqual = 7,
-    Binop_GreaterThan = 8,
-    Binop_GreaterEqual = 9,
-    Binop_Equal = 10,
-    Binop_NotEqual = 11,
-    Binop_And = 12,
-    Binop_Or = 13,
+enum class BinopKind {
+    Add = 1,
+    Sub = 2,
+    Mul = 3,
+    Div = 4,
+    Rem = 5,
+    LessThan = 6,
+    LessEqual = 7,
+    GreaterThan = 8,
+    GreaterEqual = 9,
+    Equal = 10,
+    NotEqual = 11,
+    And = 12,
+    Or = 13,
 };
 
-enum Opcode {
-    Opcode_Const = 16,
-    Opcode_String = 17,
-    Opcode_SExp = 18,
-    Opcode_StI = 19,
-    Opcode_StA = 20,
-    Opcode_Jmp = 21,
-    Opcode_End = 22,
-    Opcode_Ret = 23,
-    Opcode_Drop = 24,
-    Opcode_Dup = 25,
-    Opcode_Swap = 26,
-    Opcode_Elem = 27,
+enum class Opcode {
+    Const = 16,
+    String = 17,
+    SExp = 18,
+    StI = 19,
+    StA = 20,
+    Jmp = 21,
+    End = 22,
+    Ret = 23,
+    Drop = 24,
+    Dup = 25,
+    Swap = 26,
+    Elem = 27,
 
-    Opcode_CJmpZ = 80,
-    Opcode_CJmpNZ = 81,
-    Opcode_Begin = 82,
-    Opcode_CBegin = 83,
-    Opcode_Closure = 84,
-    Opcode_CallC = 85,
-    Opcode_Call = 86,
-    Opcode_Tag = 87,
-    Opcode_Array = 88,
-    Opcode_Fail = 89,
-    Opcode_Line = 90,
+    CJmpZ = 80,
+    CJmpNZ = 81,
+    Begin = 82,
+    CBegin = 83,
+    Closure = 84,
+    CallC = 85,
+    Call = 86,
+    Tag = 87,
+    Array = 88,
+    Fail = 89,
+    Line = 90,
 };
 
-enum LCall {
-    LCall_Lread = 0,
-    LCall_Lwrite = 1,
-    LCall_Llength = 2,
-    LCall_Lstring = 3,
-    LCall_Barray = 4,
+enum class LCall {
+    Lread = 0,
+    Lwrite = 1,
+    Llength = 2,
+    Lstring = 3,
+    Barray = 4,
 };
 
-enum Location {
-    Location_Global = 0,
-    Location_Local = 1,
-    Location_Arg = 2,
-    Location_Captured = 3,
+enum class Location {
+    Global = 0,
+    Local = 1,
+    Arg = 2,
+    Captured = 3,
 };
 
-enum Pattern {
-    Pattern_String = 0,
-    Pattern_StringTag = 1,
-    Pattern_ArrayTag = 2,
-    Pattern_SExpTag = 3,
-    Pattern_Boxed = 4,
-    Pattern_Unboxed = 5,
-    Pattern_ClosureTag = 6
+enum class Pattern {
+    //
+    String = 0,
+    StringTag = 1,
+    ArrayTag = 2,
+    SExpTag = 3,
+    Boxed = 4,
+    Unboxed = 5,
+    ClosureTag = 6
 };
 
-#define BINOPS(MACRO)             \
-    MACRO(Binop_Add, add)         \
-    MACRO(Binop_Sub, sub)         \
-    MACRO(Binop_Mul, mul)         \
-    MACRO(Binop_Div, div)         \
-    MACRO(Binop_LessThan, slt)    \
-    MACRO(Binop_LessEqual, sle)   \
-    MACRO(Binop_And, and)         \
-    MACRO(Binop_Or, or)           \
-    MACRO(Binop_Rem, rem)         \
-    MACRO(Binop_GreaterThan, sgt) \
-    MACRO(Binop_GreaterEqual, sge)\
-    MACRO(Binop_Equal, eq)        \
-    MACRO(Binop_NotEqual, neq)
+#define BINOPS(MACRO)                   \
+    MACRO(BinopKind::Add, add)          \
+    MACRO(BinopKind::Sub, sub)          \
+    MACRO(BinopKind::Mul, mul)          \
+    MACRO(BinopKind::Div, div)          \
+    MACRO(BinopKind::LessThan, slt)     \
+    MACRO(BinopKind::LessEqual, sle)    \
+    MACRO(BinopKind::And, and)          \
+    MACRO(BinopKind::Or, or)            \
+    MACRO(BinopKind::Rem, rem)          \
+    MACRO(BinopKind::GreaterThan, sgt)  \
+    MACRO(BinopKind::GreaterEqual, sge) \
+    MACRO(BinopKind::Equal, eq)         \
+    MACRO(BinopKind::NotEqual, neq)
 
-#define LOCATIONS(hi, MACRO)        \
-    MACRO(hi, Location_Global, "G") \
-    MACRO(hi, Location_Local, "L")  \
-    MACRO(hi, Location_Arg, "A")    \
-    MACRO(hi, Location_Captured, "C")
+#define LOCATIONS(hi, MACRO)         \
+    MACRO(hi, Location::Global, "G") \
+    MACRO(hi, Location::Local, "L")  \
+    MACRO(hi, Location::Arg, "A")    \
+    MACRO(hi, Location::Captured, "C")
 
 struct LocationEntry {
     Location kind;
     int index;
 };
 
-#define LCALLS(MACRO)               \
-    MACRO(LCall_Lread, "Lread")     \
-    MACRO(LCall_Lwrite, "Lwrite")   \
-    MACRO(LCall_Llength, "Llength") \
-    MACRO(LCall_Lstring, "Lstring") \
-    MACRO(LCall_Barray, "Barray")
+#define LCALLS(MACRO)                \
+    MACRO(LCall::Lread, "Lread")     \
+    MACRO(LCall::Lwrite, "Lwrite")   \
+    MACRO(LCall::Llength, "Llength") \
+    MACRO(LCall::Lstring, "Lstring") \
+    MACRO(LCall::Barray, "Barray")
 
-#define PATTERNS(MACRO)                 \
-    MACRO(Pattern_String, "=str")       \
-    MACRO(Pattern_StringTag, "#string") \
-    MACRO(Pattern_ArrayTag, "#array")   \
-    MACRO(Pattern_SExpTag, "#sexp")     \
-    MACRO(Pattern_Boxed, "#ref")        \
-    MACRO(Pattern_Unboxed, "#val")      \
-    MACRO(Pattern_ClosureTag, "#fun")
+#define PATTERNS(MACRO)                  \
+    MACRO(Pattern::String, "=str")       \
+    MACRO(Pattern::StringTag, "#string") \
+    MACRO(Pattern::ArrayTag, "#array")   \
+    MACRO(Pattern::SExpTag, "#sexp")     \
+    MACRO(Pattern::Boxed, "#ref")        \
+    MACRO(Pattern::Unboxed, "#val")      \
+    MACRO(Pattern::ClosureTag, "#fun")
 
 #define SINGLE(code) ((unsigned char)(code))
 #define COMPOSED(hi, lo) ((unsigned char)(((hi) << 4) | (lo)))
+
+std::ostream& operator<<(std::ostream&, BinopKind const&);
+std::ostream& operator<<(std::ostream&, Location const&);
+std::ostream& operator<<(std::ostream&, LocationEntry const&);
