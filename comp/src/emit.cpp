@@ -141,13 +141,15 @@ void Load::emit_code(rv::Compiler* c) const {
         break;
     };
 
-    case Location::Local:
+    case Location::Local: {
         DCHECK_LT(_loc.index, c->current_frame->locals_count) << "local index out of bounds";
         c->cb.symb_emit_ld(
             c->st.alloc(), {SymbolicLocationType::Register, rv::Register::fp().regno}, -_loc.index * rv::WORD_SIZE
         );
         break;
-    case Location::Arg:
+    };
+
+    case Location::Arg: {
         DCHECK_LT(_loc.index, c->current_frame->args_count) << "arg index out of bounds";
         if (_loc.index < 8) {
             c->cb.symb_emit_mv(c->st.alloc(), rv::Register::arg(_loc.index));
@@ -158,6 +160,7 @@ void Load::emit_code(rv::Compiler* c) const {
             );
         }
         break;
+    }
 
     case Location::Captured:
         TODO() << *this;
@@ -231,7 +234,7 @@ void Call::emit_code(rv::Compiler* c) const {
         c->cb.emit_sd(r, rv::Register::sp(), -rv::WORD_SIZE);
         c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -rv::WORD_SIZE);
     });
-    for (auto i : std::views::iota(0ul, _argc) | std::views::take(8)) {
+    for (auto i : std::views::iota(0ul, _argc) | std::views::take(8) | std::views::reverse) {
         c->cb.symb_emit_mv(rv::Register::arg(i), c->st.pop());
     }
     // Align sp to 16 bytes
@@ -247,8 +250,8 @@ void Call::emit_code(rv::Compiler* c) const {
     c->cb.emit_call(std::visit(
         overloads{
             [](std::string name) { return name; },
-            [c, argc = _argc](size_t offset) {
-                c->add_jump_target(offset, argc);
+            [c](size_t offset) {
+                c->add_jump_target(offset, 0);
                 return c->label_for_ip(offset);
             },
         },
