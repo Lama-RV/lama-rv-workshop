@@ -1,4 +1,5 @@
 #include <glog/logging.h>
+#include <cstddef>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -10,14 +11,16 @@
 
 void emit(
     std::map<size_t, std::unique_ptr<lama::Instruction>> const& instructions,
-    std::vector<std::string_view> &&strings,
-    size_t n_globals,
+    std::vector<std::string_view>&& strings,
+    bytefile const* f,
     std::ostream& out
 ) {
-    lama::rv::Compiler c{out, n_globals, std::move(strings)};
-    c.header();
     CHECK(!instructions.empty());
-    c.add_jump_target(instructions.begin()->first, 0);
+    lama::rv::Compiler c{out, static_cast<size_t>(f->global_area_size), std::move(strings)};
+    c.header();
+    for (size_t i = 0; i < f->public_symbols_number; ++i) {
+        c.add_jump_target(get_public_offset(f, i), 0);
+    }
     while (true) {
         auto todo_it = c.todo.begin();
         if (todo_it == c.todo.end()) {
@@ -66,6 +69,6 @@ int main(int argc, char const* argv[]) {
         auto [_pos, inserted] = instructions.emplace(offset, std::move(inst));
         DCHECK(inserted) << std::format("{:#x}", offset);
     }
-    emit(instructions, reader.read_strings(), file->global_area_size, std::cout);
+    emit(instructions, reader.read_strings(), file, std::cout);
     close_file(file);
 }

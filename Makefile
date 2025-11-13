@@ -11,7 +11,7 @@ lama-rv: | $(LAMA_RV_BUILD_DIR)
 	cmake --build $(LAMA_RV_BUILD_DIR) --parallel --target lama-rv
 
 bcdump: | $(LAMA_RV_BUILD_DIR)
-	cmake --build $(LAMA_RV_BUILD_DIR) --target bcdump
+	cmake --build $(LAMA_RV_BUILD_DIR) --parallel --target bcdump
 
 disasm: | $(LAMA_RV_BUILD_DIR)
 	cmake --build $(LAMA_RV_BUILD_DIR) --parallel --target disasm
