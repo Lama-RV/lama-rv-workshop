@@ -3,6 +3,7 @@
 #include "compiler.h"
 #include "cpp.h"
 #include "instructions.h"
+#include "register.h"
 #include "runtime.h"
 
 namespace lama {
@@ -61,8 +62,14 @@ void Return::emit_code(rv::Compiler*) const {
     TODO();
 }
 
-void Swap::emit_code(rv::Compiler*) const {
-    TODO();
+void Swap::emit_code(rv::Compiler* c) const {
+    auto const a = c->st.pop();
+    auto const b = c->st.peek();
+    auto const temp = rv::Register::temp1();
+    c->cb.symb_emit_mv(temp, a);
+    c->cb.symb_emit_mv(a, b);
+    c->cb.symb_emit_mv(b, temp);
+    c->st.push(a);
 }
 
 void Elem::emit_code(rv::Compiler* c) const {
