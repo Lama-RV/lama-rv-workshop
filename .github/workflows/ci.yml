@@ -1,0 +1,19 @@
+name: Regression test CI
+
+on:
+  pull_request:
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v25
+
+      - name: Build comp & tools
+        run: nix develop --command bash -c "make build"
+
+      - name: Run regression
+        run: nix develop --command bash -c "make regression"

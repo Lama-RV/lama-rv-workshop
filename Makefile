@@ -1,7 +1,9 @@
 LAMA_RV_BUILD_DIR=$(PWD)/comp/build
 LAMA_RV=$(LAMA_RV_BUILD_DIR)/lama-rv
 
-build: runtime-rv lama-rv
+build: comp runtime-rv | $(LAMA_RV_BUILD_DIR)
+
+comp: lama-rv bcdump disasm
 
 $(LAMA_RV_BUILD_DIR):
 	mkdir -p $(LAMA_RV_BUILD_DIR)
@@ -19,7 +21,7 @@ disasm: | $(LAMA_RV_BUILD_DIR)
 runtime-rv:
 	$(MAKE) -C runtime build
 
-regression: build
+regression: build disasm
 	$(MAKE) -C regression $(if $(value TEST),test$(TEST),check) LAMA_RV_BACKEND=$(LAMA_RV)
 
 clean:
