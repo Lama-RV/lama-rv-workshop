@@ -3,7 +3,7 @@ TESTS=$(sort $(basename $(wildcard *.lama)))
 LAMAC=lamac
 LAMA_RV_BACKEND?=../comp/build/lama-rv
 RV_TRIPLET=riscv64-unknown-linux-gnu
-SIM=qemu-riscv64 -L /usr/$(RV_TRIPLET) -plugin ./libinsn.so,arg=inline -d plugin
+SIM=qemu-riscv64 -L /usr/$(RV_TRIPLET) -plugin ./libinsn.so,inline=on -d plugin
 RV_AS=$(RV_TRIPLET)-as
 RV_GCC=$(RV_TRIPLET)-gcc
 
@@ -12,8 +12,7 @@ RV_GCC=$(RV_TRIPLET)-gcc
 check: $(TESTS)
 
 $(TESTS): %: %.lama ../runtime/runtime.a
-	@echo "Running test $@"
-	@echo $@
+	@echo "Running benchmark $@"
 	@$(LAMAC) -b $< # produce bytecode file
 	@$(LAMA_RV_BACKEND) $@.bc > $@.S # produce asm backend output
 	@$(RV_AS) $@.S -o $@.o # produce object file

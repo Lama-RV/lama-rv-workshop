@@ -1,0 +1,264 @@
+import Std;
+import Array;
+
+var int_glob,
+    bool_glob,
+    ch_1_glob,
+    ch_2_glob,
+    arr_1_glob = initArray(50, fun (_) { 0 } ),
+    arr_2_glob = initArray(50, fun (_) { initArray(50, fun (_) { 0 } ) });
+
+var int_1_loc;
+var int_2_loc;
+var int_3_loc;
+var ch_index;
+var enum_loc;
+var str_1_loc;
+var str_2_loc;
+var run_index;
+var number_of_runs = 20000;
+
+
+var ident_1 = 0;
+var ident_2 = 1;
+var ident_3 = 2;
+var ident_4 = 3;
+var ident_5 = 4;
+
+-- Record is Rec ptr_comp discr variant
+-- where variant = Var1 enum_comp int_comp str_comp
+--               | Var2 e_comp_2 str_2_comp
+--               | Var3 ch_1_comp ch_2_comp
+
+var next_ptr_glob = Rec(Nil, 0, Var1(0, 0, ""));
+var ptr_glob = Rec (
+        next_ptr_glob, 
+        ident_1, 
+        Var1 (ident_3, 40, "DHRYSTONE PROGRAM, SOME STRING")
+    );
+
+
+fun proc_1 (ptr_val_par) {
+    var m;
+    var next_record = case ptr_val_par of Rec(ptr_comp, _, _) -> ptr_comp esac;
+    ptr_val_par := case ptr_val_par of Rec(ptr_comp, d, v) -> Rec(ptr_glob, d, v) esac;
+    ptr_val_par := case ptr_val_par of Rec(p, d, v) -> case v of Var1(e, i, s)
+        -> Rec(p, d, Var1(e, 5, s))
+    esac esac;
+    
+    m := case ptr_val_par of Rec(p, d, v) -> case v of Var1(e, i, s) -> i esac esac;
+    next_record := case next_record of Rec(p, d, v) -> case v of Var1(e, i, s)
+        -> Rec(p, d, Var1(e, m, s))
+    esac esac;
+
+    next_record := case next_record of Rec(p, d, v) ->
+        case ptr_val_par of Rec(pp, _, _) -> Rec(pp, d, v) esac
+    esac;
+
+    next_record := case next_record of Rec(p, d, v) -> Rec(proc_3(p), d, v) esac;
+
+    if (case next_record of Rec(p, d, v) -> d esac) == ident_1 then
+        next_record := case next_record of Rec(p, d, v) -> case v of Var1(e, i, s)
+            -> Rec(p, d, Var1(e, 6, s))
+        esac esac;
+
+        next_record := case next_record of Rec(p, d, v) -> case v of Var1(e, i, s)
+            ->  var eee = case ptr_val_par of Rec(_, _, vv) -> case vv of Var1(ee, ii, ss) -> ee esac esac;
+                Rec(p, d, Var1(proc_6(eee, e), i, s))
+        esac esac;
+
+        next_record := case next_record of Rec(p, d, v) ->
+            case ptr_glob of Rec(pp, _, _) -> Rec(pp, d, v) esac
+        esac;
+
+        next_record := case next_record of Rec(p, d, v) -> case v of Var1(e, i, s)
+            -> Rec(p, d, Var1(e, proc_7(i, 10, i), s))
+        esac esac
+    fi;
+
+    case ptr_val_par of Rec(p, d, v) -> Rec(next_record, d, v) esac
+}
+
+fun proc_2 (int_par_ref) {
+    var int_loc = int_par_ref + 10;
+    var result = int_par_ref;
+    var enum_loc;
+    do
+        if ch_1_glob == 'A' then
+            int_loc := int_loc - 1;
+            result := int_loc - int_glob;
+            enum_loc := ident_1
+        fi
+    while enum_loc != ident_1 od;
+    result
+}
+
+fun proc_3(ptr_ref_par) {
+    var result = ptr_ref_par;
+    case ptr_ref_par of Rec(ptr_comp, discr, variant) ->
+        case variant of Var1(enum_comp, int_comp, str_comp) ->
+            case ptr_glob of Rec(ptr_comp2, discr2, variant2) ->
+                case variant2 of Var1(enum_comp2, int_comp2, str_comp2) ->
+                    var new_int_comp2 = proc_7(10, int_glob, int_comp2);
+                    result := ptr_comp2;
+                    ptr_glob := Rec(ptr_comp2, discr2, Var1(enum_comp2, new_int_comp2, str_comp2))
+                esac
+            esac
+        esac
+    esac;
+    result
+}
+
+fun proc_4() {
+    var bool_loc = (ch_1_glob == 'A');
+    bool_glob := bool_glob !! bool_loc;
+    ch_2_glob := 'B'
+}
+
+fun proc_5() {
+    ch_1_glob := 'A';
+    bool_glob := false
+}
+
+fun proc_6(enum_val_par) {
+    var result = enum_val_par;
+
+    if 1 - func_3(enum_val_par) then
+        result := ident_4
+    fi;
+    case enum_val_par of
+        ident_1 -> 
+            result := ident_1
+    |   ident_2 -> 
+            if int_glob > 100 then
+                result := ident_1
+            else
+                result := ident_4
+            fi
+    |   ident_3 ->
+            result := ident_2
+    |   ident_4 -> skip
+    |   ident_5 ->
+            result := ident_3
+    esac;
+    result
+}
+
+fun proc_7(int_1_par_val, int_2_par_val, int_3_par_ref) {
+    var int_loc = int_1_par_val + 2;
+    int_2_par_val + int_loc
+}
+
+fun proc_8(arr_1_par_ref, arr_2_par_ref, int_1_par_val, int_2_par_val) {
+    var int_index, int_loc;
+    int_loc := int_1_par_val + 5;
+    arr_1_par_ref[int_loc] := int_2_par_val;
+    arr_1_par_ref[int_loc + 1] := arr_1_par_ref[int_loc];
+    arr_2_par_ref[int_loc + 30] := int_loc;
+    for int_index := int_loc, int_index <= int_loc + 1, int_index := int_index + 1 do
+        arr_2_par_ref[int_loc][int_index] := int_loc
+    od;
+    arr_2_par_ref[int_loc][int_loc - 1] := arr_2_par_ref[int_loc][int_loc - 1] + 1;
+    arr_2_par_ref[int_loc + 20][int_loc] := arr_1_par_ref[int_loc]; 
+    int_glob := 5
+}
+
+fun func_1(ch_1_par_val, ch_2_par_val) {
+    var ch_1_loc, ch_2_loc;
+    ch_1_loc := ch_1_par_val;
+    ch_2_loc := ch_1_loc;
+    if ch_2_loc != ch_2_par_val then 
+        ident_1
+    else 
+        ch_1_glob := ch_1_loc;
+        ident_2
+    fi
+}
+
+fun func_2(str_1_par_ref, str_2_par_ref) {
+    var int_loc, ch_loc;
+    int_loc := 2;
+
+    while int_loc <= 2 do
+        if func_1(str_1_par_ref[int_loc], str_2_par_ref[int_loc + 1]) == ident_1 then
+            ch_loc := 'A';
+            int_loc := int_loc + 1
+        fi
+    od;
+
+    if ch_loc >= 'W' && ch_loc < 'Z' then
+        int_loc := 7
+    fi;
+    if ch_loc == 'R' then
+        true
+    else
+        if str_1_par_ref > str_2_par_ref then
+            int_loc := int_loc + 7;
+            int_glob := int_loc;
+            true
+        else
+            false
+        fi
+    fi
+}
+
+fun func_3(enum_par_val) {
+    var enum_loc;
+    enum_loc := enum_par_val;
+    if enum_loc == ident_3 then
+        true
+    else
+        false
+    fi
+}
+
+str_1_loc := "DHRYSTONE PROGRAM, 1'ST STRING";
+
+arr_2_glob[8][7] := 10;
+
+printf ("\n");
+printf ("Dhrystone Benchmark, Version 2.1 (Language: Lama)\n");
+printf ("\n");
+
+printf ("Execution starts, %d runs through Dhrystone\n", number_of_runs);
+
+for run_index := 1, run_index <= number_of_runs, run_index := run_index + 1 do
+    proc_5();
+    proc_4();
+    int_1_loc := 2;
+    int_2_loc := 3;
+    str_2_loc := "DHRYSTONE PROGRAM, 2'ND STRING";
+    enum_loc := ident_2;
+    bool_glob := 1 - func_2(str_1_loc, str_2_loc);
+
+    while int_1_loc < int_2_loc do
+        int_3_loc := 5 * int_1_loc - int_2_loc;
+        int_3_loc := proc_7(int_1_loc, int_2_loc);
+        int_1_loc := int_1_loc + 1
+    od;
+
+    proc_8(arr_1_glob, arr_2_glob, int_1_loc, int_3_loc);
+    ptr_glob := proc_1(ptr_glob);
+
+    for ch_index := 'A', ch_index <= ch_2_glob, ch_index := ch_index + 1 do
+        if enum_loc == func_1(ch_index, 'C') then
+            failure("fail");
+            enum_loc := proc_6(ident_1);
+            str_2_loc := "DHRYSTONE PROGRAM, 3'RD STRING";
+            int_2_loc := run_index;
+            int_glob := run_index
+        fi
+    od;
+
+    int_2_loc := int_2_loc * int_1_loc;
+    int_1_loc := int_2_loc / int_3_loc;
+    int_2_loc := 7 * (int_2_loc - int_3_loc)- int_1_loc;
+
+    int_1_loc := proc_2(int_1_loc)
+od;
+
+printf ("Execution ends\n");
+printf ("\n")
+
+-- TODO: check consistency with C version
+
