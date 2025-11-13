@@ -32,6 +32,7 @@ private:
     char const* ip;
     int function_index;
     std::unordered_map<int, std::string> function_names;
+    std::vector<std::string_view> strings;
 
     inline void assert_can_read(int bytes) {
         CHECK_LE(file->code_ptr, ip) << "ip is out of code section";
@@ -51,8 +52,9 @@ private:
         return result;
     }
 
-    inline char const* read_string() {
-        return get_string(file, read_int());
+    inline char const* read_string(int pos = -1) {
+        if (pos == -1) pos = read_int();
+        return get_string(file, pos);
     }
 
     inline LocationEntry read_loc() {
@@ -63,6 +65,10 @@ private:
 
 public:
     std::unique_ptr<Instruction> read_inst();
+
+    inline std::vector<std::string_view> read_strings() const { 
+        return strings;
+    }
 };
 
 }  // namespace lama

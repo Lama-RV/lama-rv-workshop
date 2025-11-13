@@ -10,10 +10,11 @@
 
 void emit(
     std::map<size_t, std::unique_ptr<lama::Instruction>> const& instructions,
+    std::vector<std::string_view> &&strings,
     size_t n_globals,
     std::ostream& out
 ) {
-    lama::rv::Compiler c{out, n_globals};
+    lama::rv::Compiler c{out, n_globals, std::move(strings)};
     c.header();
     CHECK(!instructions.empty());
     c.add_jump_target(instructions.begin()->first, 0);
@@ -65,6 +66,6 @@ int main(int argc, char const* argv[]) {
         auto [_pos, inserted] = instructions.emplace(offset, std::move(inst));
         DCHECK(inserted) << std::format("{:#x}", offset);
     }
-    emit(instructions, file->global_area_size, std::cout);
+    emit(instructions, reader.read_strings(), file->global_area_size, std::cout);
     close_file(file);
 }

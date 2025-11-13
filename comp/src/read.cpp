@@ -12,7 +12,9 @@ std::unique_ptr<lama::Instruction> lama::InstReader::read_inst() {
     }
 
     case Opcode::String: {
-        return std::make_unique<String>(read_string());
+        int ind = read_int();
+        strings.emplace_back(read_string(ind));
+        return std::make_unique<String>(strings.size() - 1, strings.back());
     }
 
     case Opcode::SExp: {

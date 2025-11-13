@@ -25,7 +25,7 @@ public:
         return {1};
     }
     static constexpr Register gp() {
-        return {3};
+        return {5};
     }
     static constexpr Register sp() {
         return {2};

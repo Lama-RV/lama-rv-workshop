@@ -4,12 +4,11 @@
 #include <ostream>
 #include <string>
 #include <string_view>
-#include <vector>
 
 #include "symb_stack.h"
 #include "register.h"
 
-#define DEBUG_COMMENTS 1
+#define DEBUG_COMMENTS 0
 
 namespace lama::rv {
 
@@ -156,7 +155,12 @@ namespace lama::rv {
             emit(std::format("mv\t{},\t{}", dst_reg, src_reg));
         }
 
-        void emit_call(std::string label) {
+        void symb_emit_la(const SymbolicLocation& dst, std::string_view label) {
+            auto dst_reg = to_reg(dst, rv::Register::temp1());
+            emit(std::format("la\t{},\t{}", dst_reg, label));
+        }
+
+        void emit_call(std::string_view label) {
             emit(std::format("call\t{}", label));
         }
 
@@ -164,7 +168,7 @@ namespace lama::rv {
             emit("ret");
         }
 
-        void emit_label(const std::string& label) {
+        void emit_label(std::string_view label) {
             emit(std::format("{}:", label));
         }
 
