@@ -1,5 +1,4 @@
 #pragma once
-#include <cstddef>
 #include <format>
 #include <string>
 #include <string_view>
@@ -7,6 +6,9 @@
 
 #include "symb_stack.h"
 #include "register.h"
+
+#define DEBUG_COMMENTS 1
+
 namespace lama::rv {
 
     class CodeBuffer {
@@ -173,8 +175,10 @@ namespace lama::rv {
             emit(std::format("{}:", label));
         }
 
-        void emit_comment(const std::string& comment) {
+        void emit_comment([[maybe_unused]] const std::string& comment) {
+#if DEBUG_COMMENTS
             emit(std::format("# {}", comment));
+#endif
         }
 
         void emit_j(std::string_view target_label) {

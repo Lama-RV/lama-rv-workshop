@@ -23,7 +23,7 @@ public:
     std::unordered_map<size_t, size_t> todo;
 
     static std::string label_for_ip(size_t ip){
-        return std::format("lamabc_{:#x}", ip);
+        return std::format(".lbc_{:#x}", ip);
     }
 
     void add_jump_target(size_t offset, size_t stack_height) {
