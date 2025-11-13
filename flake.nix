@@ -25,6 +25,9 @@
           gdb
           glog
 
+          glib
+          pkg-config
+
           pkgsRV.stdenv.cc
         ];
       };
