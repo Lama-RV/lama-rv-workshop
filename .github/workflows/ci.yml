@@ -1,6 +1,7 @@
 name: Lama CI
 
 on:
+  push:
   pull_request:
 
 jobs:
@@ -11,20 +12,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Docker
-        uses: docker/setup-docker@v3
-        with:
-          version: "latest"
+      - name: Build Docker image
+        run: docker build -t lama-rv .
 
-      - name: Check Docker Compose
-        run: docker compose version
-
-      - name: Build and start services
-        run: docker compose up -d --build lama-rv
-
-      - name: Run regression tests
-        run: docker compose exec lama-rv make -C regression check
-
-      - name: Stop and clean up
-        if: always()
-        run: docker compose down -v
+      - name: Run tests inside container
+        run: |
+          docker run --rm lama-rv make -C regression check
