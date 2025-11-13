@@ -11,20 +11,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Docker Compose
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y docker-compose-plugin
+      - name: Set up Docker
+        uses: docker/setup-docker@v3
+        with:
+          version: "latest"
+
+      - name: Check Docker Compose
+        run: docker compose version
 
       - name: Build and start services
-        run: |
-          docker compose up -d --build lama-rv
+        run: docker compose up -d --build lama-rv
 
       - name: Run regression tests
-        run: |
-          docker compose exec lama-rv make -C regression check
+        run: docker compose exec lama-rv make -C regression check
 
       - name: Stop and clean up
         if: always()
-        run: |
-          docker compose down -v
+        run: docker compose down -v
