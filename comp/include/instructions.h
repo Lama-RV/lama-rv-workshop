@@ -3,6 +3,8 @@
 #include "instruction.h"
 #include "opcode.h"
 
+#define BOX(x) (2 * x + 1)
+
 namespace lama {
 
 #define INSTRUCTIONS(MACRO) \
@@ -46,7 +48,7 @@ private:
 
 public:
     Const(int value)
-        : _value(2 * value + 1) {}
+        : _value(BOX(value)) {}
 
     inline int value() {
         return _value;
@@ -58,15 +60,12 @@ public:
 
 class String : public Instruction {
 private:
-    char const* _str;
+    size_t _ind;
+    std::string_view _str;
 
 public:
-    String(char const* str)
-        : _str(str) {}
-
-    inline char const* str() {
-        return _str;
-    }
+    String(size_t index, std::string_view str)
+        : _ind(index), _str(str) {}
 
     void print(std::ostream&) const override;
     void emit_code(rv::Compiler* c) const override;
@@ -351,14 +350,14 @@ class BuiltinRead : public Instruction {
 public:
     void print(std::ostream&) const override;
     void emit_code(rv::Compiler* c) const override {
-        Call("Lread", 0).emit_code(c);
+        c->compile_call("Lread", 0);
     }
 };
 
 class BuiltinWrite : public Instruction {
     void print(std::ostream&) const override;
     void emit_code(rv::Compiler* c) const override {
-        Call("Lwrite", 1).emit_code(c);
+        c->compile_call("Lwrite", 1);
     }
 };
 

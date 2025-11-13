@@ -208,7 +208,7 @@ extern aint Llength (void *p) {
 }
 
 static char *chars = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'";
-#ifdef X86_64
+#ifdef ARCH64
 #define MAX_SEXP_TAGLEN 10
 #else
 #define MAX_SEXP_TAGLEN 5
@@ -735,6 +735,10 @@ extern void *LmakeString (aint length) {
   return r->contents;
 }
 
+extern void *RVBstring(char* p) {
+  return Bstring((aint*)&p);
+}
+
 extern void *Bstring (aint* args/*void *p*/) {
   size_t   n = strlen((char*)args[0]);
   void *s = NULL;
@@ -820,6 +824,7 @@ extern void *Bclosure (aint* args, aint bn) {
   return r->contents;
 }
 
+
 extern void *Barray (aint* args, aint bn) {
   data   *r;
   aint     n = UNBOX(bn);
@@ -842,6 +847,20 @@ extern void *Barray (aint* args, aint bn) {
 
   POST_GC();
   return r->contents;
+}
+
+extern void* RVBarray(aint bn, ...) {
+  aint     n = UNBOX(bn);
+  aint* args = malloc(n * sizeof(aint));
+  va_list ap;
+  va_start(ap, n);
+  for (aint j = 0; j < n; j++) {
+      args[j] = va_arg(ap, aint);
+  }
+  va_end(ap);
+  void* r = Barray(args, bn);
+  free(args);
+  return r;
 }
 
 #ifdef DEBUG_VERSION
@@ -1032,7 +1051,7 @@ extern void *LgetEnv (char *var) {
 
 extern aint Lsystem (char *cmd) { return BOX(system(cmd)); }
 
-#ifndef X86_64
+#ifndef ARCH64
 // In X86_64 we are not able to modify va_arg
 
 static void fix_unboxed (char *s, va_list va) {

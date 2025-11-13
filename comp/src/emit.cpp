@@ -25,8 +25,8 @@ void Const::emit_code(rv::Compiler* c) const {
 }
 
 void String::emit_code(rv::Compiler* c) const {
-    c->strs.emplace_back(_str);
-    TODO() << "call BString";
+    c->cb.symb_emit_la(c->st.alloc(), std::format("string_{}", _ind));
+    Call("RVBstring", 1).emit_code(c);
 }
 
 void SExpression::emit_code(rv::Compiler*) const {
@@ -40,8 +40,8 @@ void StoreStack::emit_code(rv::Compiler* c) const {
     c->cb.symb_emit_sd(value_loc, ptr_loc, 0);
 }
 
-void StoreArray::emit_code(rv::Compiler*) const {
-    TODO();
+void StoreArray::emit_code(rv::Compiler* c) const {
+    c->compile_call("Bsta", 3);
 }
 
 void Jump::emit_code(rv::Compiler* c) const {
@@ -64,8 +64,8 @@ void Swap::emit_code(rv::Compiler*) const {
     TODO();
 }
 
-void Elem::emit_code(rv::Compiler*) const {
-    TODO();
+void Elem::emit_code(rv::Compiler* c) const {
+    c->compile_call("Belem", 2);
 }
 
 void Closure::emit_code(rv::Compiler*) const {
@@ -83,10 +83,11 @@ void Begin::emit_code(rv::Compiler* c) const {
         },
         _id
     );
+    c->current_frame = rv::FrameInfo{.function_name = name, .locals_count = _locc, .args_count = _argc};
     if (name == "main") {
         c->cb.emit(c->premain());
+        c->compile_call("__init", 0);
     }
-    c->current_frame = rv::FrameInfo{.function_name = std::move(name), .locals_count = _locc, .args_count = _argc};
     // Save callee-saved registers (fp is included)
     rv::Register::saved_apply([c, this](rv::Register const& r, int i) {
         c->cb.emit_sd(r, rv::Register::sp(), -(i + _locc) * rv::WORD_SIZE);
@@ -204,8 +205,8 @@ void PatternInst::emit_code(rv::Compiler*) const {
     TODO();
 }
 
-void BuiltinLength::emit_code(rv::Compiler*) const {
-    TODO();
+void BuiltinLength::emit_code(rv::Compiler* c) const {
+    c->compile_call("Llength", 1);
 }
 
 void BuiltinString::emit_code(rv::Compiler*) const {
@@ -213,71 +214,11 @@ void BuiltinString::emit_code(rv::Compiler*) const {
 }
 
 void BuiltinArray::emit_code(rv::Compiler* c) const {
-    Call("BArray", _len).emit_code(c);
+    c->compile_call("RVBarray", _len, BOX(_len));
 }
 
 void Call::emit_code(rv::Compiler* c) const {
-    size_t alignment = (c->current_frame->locals_count + c->st.spilled_count() + _argc) & 1;
-    // Skip spilled registers
-    c->cb.emit_comment(std::format("Skip spilled registers {}", c->st.spilled_count()));
-    c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -c->st.spilled_count() * rv::WORD_SIZE);
-    // Save ra
-    c->cb.emit_sd(rv::Register::ra(), rv::Register::sp(), -rv::WORD_SIZE);
-    c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -rv::WORD_SIZE);
-    // Save temp registers
-    rv::Register::temp_apply([c](rv::Register const& r, int) {
-        c->cb.emit_sd(r, rv::Register::sp(), -rv::WORD_SIZE);
-        c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -rv::WORD_SIZE);
-    });
-    // Save arguments
-    rv::Register::arg_apply([c](rv::Register const& r, int) {
-        c->cb.emit_sd(r, rv::Register::sp(), -rv::WORD_SIZE);
-        c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -rv::WORD_SIZE);
-    });
-    for (auto i : std::views::iota(0ul, _argc) | std::views::take(8) | std::views::reverse) {
-        c->cb.symb_emit_mv(rv::Register::arg(i), c->st.pop());
-    }
-    // Align sp to 16 bytes
-    if (alignment) {
-        c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -rv::WORD_SIZE);
-    }
-    // Store extra arguments on stack
-    for (auto _ : std::views::iota(0ul, _argc) | std::views::drop(8) | std::views::reverse) {
-        c->cb.emit_sd(c->cb.to_reg(c->st.pop(), rv::Register::temp1()), rv::Register::sp(), -rv::WORD_SIZE);
-        c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -rv::WORD_SIZE);
-    }
-    // Call function
-    c->cb.emit_call(std::visit(
-        overloads{
-            [](std::string name) { return name; },
-            [c](size_t offset) {
-                c->add_jump_target(offset, 0);
-                return c->label_for_ip(offset);
-            },
-        },
-        _callee
-    ));
-    // Drop extra arguments from stack
-    if (_argc > 8) {
-        c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), (_argc - 8) * rv::WORD_SIZE);
-    }
-    if (alignment) {
-        c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), rv::WORD_SIZE);
-    }
-    c->cb.symb_emit_mv(c->st.alloc(), rv::Register::arg(0));
-    // Restore arguments
-    for (auto i : std::views::iota(0ul, 8ul) | std::views::reverse) {
-        c->cb.emit_ld(rv::Register::arg(i), rv::Register::sp(), 0);
-        c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), rv::WORD_SIZE);
-    };
-    // Restore temp registers
-    c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), 8 * rv::WORD_SIZE);
-    rv::Register::temp_apply([c](rv::Register const& r, int i) {
-        c->cb.emit_ld(r, rv::Register::sp(), -(i + 1) * rv::WORD_SIZE);
-    });
-    // Restore ra
-    c->cb.emit_ld(rv::Register::ra(), rv::Register::sp(), -rv::WORD_SIZE);
-    c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), c->st.spilled_count() * rv::WORD_SIZE);
+    c->compile_call(_callee, _argc);
 }
 
 void Binop::emit_code(rv::Compiler* c) const {

@@ -13,7 +13,7 @@ public:
         size_t number;
     };
 
-    constexpr static size_t regs[] = {9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 5, 6, 7, 28, 29};
+    constexpr static size_t regs[] = {9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 6, 7, 28, 29};
 
     int top;
     SymbolicStack()
