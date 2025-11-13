@@ -1,6 +1,8 @@
 TESTS=$(sort $(basename $(wildcard test*.lama)))
 
 LAMA_RV_BACKEND?=../comp/build/lama-rv
+DISASM?=../comp/build/disasm
+BCDUMP?=../comp/build/bcdump
 LAMAC=lamac
 RV_TRIPLET=riscv64-unknown-linux-gnu
 SIM=qemu-riscv64 -L /usr/$(RV_TRIPLET)
@@ -11,13 +13,16 @@ check: $(TESTS)
 
 $(TESTS): %: %.lama
 	$(if $(value LAMA_RV_BACKEND),,$(error LAMA_RV_BACKEND is undefined))
-	@echo "Running test $@"
-	$(LAMAC) -b $< # produce bytecode file
-	$(LAMA_RV_BACKEND) $@.bc > $@.S # produce asm backend output
-	$(RV_AS) $@.S -o $@.o # produce object file
-	$(RV_GCC) $@.o ../runtime/runtime.a -o $@.elf # linux object file with runtime & C standart library
-	$(SIM) $@.elf < $@.input > $@.output # run elf in functional simulator of RISC-V hart
-	diff --suppress-common-lines -y $@.ref $@.output # compare output with reference (testxxx.ref file)
+	# Running test $@
+	$(LAMAC) -b $<
+	$(DISASM) $@.bc > $@-disasm.output
+	$(BCDUMP) $@.bc > $@-bcdump.output
+	diff --suppress-common-lines -y $@-disasm.output $@-bcdump.output
+	$(LAMA_RV_BACKEND) $@.bc > $@.S
+	$(RV_AS) $@.S -o $@.o
+	$(RV_GCC) $@.o ../runtime/runtime.a -o $@.elf
+	$(SIM) $@.elf < $@.input > $@.output
+	diff --suppress-common-lines -y $@.ref $@.output
 
 clean:
 	rm -rf *.bc *.elf *.S *.o *.output
