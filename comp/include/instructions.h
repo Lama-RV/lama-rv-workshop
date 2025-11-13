@@ -65,7 +65,8 @@ private:
 
 public:
     String(size_t index, std::string_view str)
-        : _ind(index), _str(str) {}
+        : _ind(index)
+        , _str(str) {}
 
     void print(std::ostream&) const override;
     void emit_code(rv::Compiler* c) const override;
@@ -168,6 +169,19 @@ public:
         : _target(target)
         , _zero(zero) {}
 
+    void print(std::ostream&) const override;
+    void emit_code(rv::Compiler* c) const override;
+};
+
+class CBegin : public Instruction {
+private:
+    size_t offset;
+    size_t _argc, _locc;
+
+public:
+    CBegin(int argc, int locc)
+        : _argc(argc)
+        , _locc(locc) {}
     void print(std::ostream&) const override;
     void emit_code(rv::Compiler* c) const override;
 };

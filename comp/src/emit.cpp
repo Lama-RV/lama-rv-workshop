@@ -72,6 +72,10 @@ void Closure::emit_code(rv::Compiler*) const {
     TODO();
 }
 
+void CBegin::emit_code(rv::Compiler* c) const {
+    Begin(std::format("closure@{:#010x}", offset), _argc, _locc).emit_code(c);
+}
+
 void Begin::emit_code(rv::Compiler* c) const {
     std::string name = std::visit(
         overloads{
