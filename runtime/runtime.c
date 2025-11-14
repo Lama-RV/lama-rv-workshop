@@ -798,6 +798,10 @@ extern void *Lstring (aint* args /* void *p */) {
   return s;
 }
 
+extern void *RVLstring(void *p) {
+  return Lstring((aint*)&p);
+}
+
 extern void *Bclosure (aint* args, aint bn) {
   data         *r;
   aint           n = UNBOX(bn);
@@ -894,6 +898,20 @@ extern void *Bsexp (aint* args, aint bn) {
 
   POST_GC();
   return (void *)((data *)r)->contents;
+}
+
+extern void* RVBsexp(aint bn, ...) {
+  aint     n = UNBOX(bn);
+  aint* args = malloc(n * sizeof(aint));
+  va_list ap;
+  va_start(ap, n);
+  for (aint j = 0; j < n; j++) {
+      args[j] = va_arg(ap, aint);
+  }
+  va_end(ap);
+  void* r = Bsexp(args, bn);
+  free(args);
+  return r;
 }
 
 extern aint Btag (void *d, aint t, aint n) {

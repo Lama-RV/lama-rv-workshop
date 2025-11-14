@@ -126,6 +126,7 @@ struct LocationEntry {
 #define SINGLE(code) ((unsigned char)(code))
 #define COMPOSED(hi, lo) ((unsigned char)(((hi) << 4) | (lo)))
 
+std::ostream& operator<<(std::ostream&, Pattern const&);
 std::ostream& operator<<(std::ostream&, BinopKind const&);
 std::ostream& operator<<(std::ostream&, Location const&);
 std::ostream& operator<<(std::ostream&, LocationEntry const&);

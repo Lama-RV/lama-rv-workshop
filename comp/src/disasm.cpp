@@ -188,7 +188,7 @@ void disassemble(std::ostream& f, bytefile* bf) {
                 break;
 
             case 9:
-                f << std::format("FAIL\t{:d}", INT());
+                f << std::format("FAIL\t{:d}:", INT());
                 f << std::format("{:d}", INT());
                 break;
 

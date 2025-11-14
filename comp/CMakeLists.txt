@@ -77,6 +77,7 @@ add_library(lama-ir
     src/read.cpp
     src/print.cpp
     src/emit.cpp
+    src/runtime.cpp
 )
 target_include_directories(lama-ir PUBLIC include)
 target_link_libraries(lama-ir bytefile glog::glog)

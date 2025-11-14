@@ -1,4 +1,5 @@
 #include <glog/logging.h>
+#include <iostream>
 #include <memory>
 #include "inst_reader.h"
 #include "instructions.h"
@@ -18,7 +19,9 @@ std::unique_ptr<lama::Instruction> lama::InstReader::read_inst() {
     }
 
     case Opcode::SExp: {
-        return std::make_unique<SExpression>(read_string(), read_int());
+        auto const name = read_string();
+        auto const size = read_int();
+        return std::make_unique<SExpression>(name, size);
     }
 
     case Opcode::StI: {
@@ -80,7 +83,9 @@ std::unique_ptr<lama::Instruction> lama::InstReader::read_inst() {
     }
 
     case Opcode::CBegin: {
-        return std::make_unique<Begin>("closure", read_int(), read_int());
+        auto const argc = read_int();
+        auto const locc = read_int();
+        return std::make_unique<CBegin>(argc, locc);
     }
 
     case Opcode::Closure: {
@@ -106,7 +111,9 @@ std::unique_ptr<lama::Instruction> lama::InstReader::read_inst() {
     }
 
     case Opcode::Tag: {
-        return std::make_unique<Tag>(read_string(), read_int());
+        auto const tag = read_string();
+        auto const size = read_int();
+        return std::make_unique<Tag>(tag, size);
     }
 
     case Opcode::Array: {
@@ -114,7 +121,9 @@ std::unique_ptr<lama::Instruction> lama::InstReader::read_inst() {
     }
 
     case Opcode::Fail: {
-        return std::make_unique<Fail>(read_int(), read_int());
+        auto const line = read_int();
+        auto const col = read_int();
+        return std::make_unique<Fail>(line, col);
     }
 
     case Opcode::Line: {

@@ -36,10 +36,10 @@ void String::print(std::ostream& os) const {
 }
 
 void SExpression::print(std::ostream& os) const {
-    TODO();
+    os << "SEXP\t" << _name << " " << _size;
 }
 
-void StoreStack::print(std::ostream& os) const {
+void StoreStack::print(std::ostream&) const {
     TODO();
 }
 
@@ -55,7 +55,7 @@ void ConditionalJump::print(std::ostream& os) const {
     os << "CJMP" << (_zero ? "z" : "nz") << "\t" << std::format("{:#010x}", _target);
 }
 
-void Return::print(std::ostream& os) const {
+void Return::print(std::ostream&) const {
     TODO();
 }
 
@@ -64,10 +64,10 @@ void Drop::print(std::ostream& os) const {
 }
 
 void Duplicate::print(std::ostream& os) const {
-    TODO();
+    os << "DUP";
 }
 
-void Swap::print(std::ostream& os) const {
+void Swap::print(std::ostream&) const {
     TODO();
 }
 
@@ -76,7 +76,14 @@ void Elem::print(std::ostream& os) const {
 }
 
 void Closure::print(std::ostream& os) const {
-    TODO();
+    os << "CLOSURE\t" << ip_to_string(_offset);
+    for (auto const& loc : _entries) {
+        os << loc;
+    }
+}
+
+void CBegin::print(std::ostream& os) const {
+    os << "CBEGIN\t" << _argc << " " << _locc;
 }
 
 void Begin::print(std::ostream& os) const {
@@ -91,19 +98,19 @@ void End::print(std::ostream& os) const {
 }
 
 void CallClosure::print(std::ostream& os) const {
-    TODO();
+    os << "CALLC\t" << _argc;
 }
 
 void Tag::print(std::ostream& os) const {
-    TODO();
+    os << "TAG\t" << _tag << " " << _size;
 }
 
 void Array::print(std::ostream& os) const {
-    TODO();
+    os << "ARRAY\t" << _size;
 }
 
 void Fail::print(std::ostream& os) const {
-    TODO();
+    os << "FAIL\t" << _line << ":" << _col;
 }
 
 void Line::print(std::ostream& os) const {
@@ -114,7 +121,7 @@ void Load::print(std::ostream& os) const {
     os << "LD\t" << _loc;
 }
 
-void LoadArray::print(std::ostream& os) const {
+void LoadArray::print(std::ostream&) const {
     TODO();
 }
 
@@ -123,7 +130,7 @@ void Store::print(std::ostream& os) const {
 }
 
 void PatternInst::print(std::ostream& os) const {
-    TODO();
+    os << "PATT\t" << _type;
 }
 
 void BuiltinRead::print(std::ostream& os) const {
@@ -187,6 +194,14 @@ std::ostream& operator<<(std::ostream& os, BinopKind const& op) {
     }
     return os;
 }
+
+std::ostream& operator<<(std::ostream& os, Pattern const& patt) {
+#define PRINT_PATT(p, name) \
+    case p:                 \
+        return os << name;
+    switch (patt) { PATTERNS(PRINT_PATT); }
+    return os;
+};
 
 #define PRINT_LOC(os, location, name) \
     case location:                    \
