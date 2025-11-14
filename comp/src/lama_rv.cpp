@@ -50,6 +50,7 @@ void emit(
             }
         }
     }
+    c.footer();
     out << std::endl;
 }
 

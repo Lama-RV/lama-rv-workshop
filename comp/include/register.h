@@ -18,9 +18,6 @@ public:
     static constexpr Register temp1() {
         return {30};
     }
-    static constexpr Register temp2() {
-        return {31};
-    }
     static constexpr Register ra() {
         return {1};
     }
@@ -33,6 +30,10 @@ public:
     static constexpr Register fp() {
         return {8};
     }
+    static constexpr Register closurep() {
+        return {5};
+    }
+
     static Register arg(size_t argno) {
         DCHECK_LT(argno, 8) << "argument register number out of range";
         return {(size_t)(10 + argno)};

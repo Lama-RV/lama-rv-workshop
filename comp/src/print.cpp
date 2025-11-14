@@ -1,7 +1,6 @@
 #include <glog/logging.h>
 #include <cstddef>
 #include <variant>
-#include "cpp.h"
 #include "instructions.h"
 #include "opcode.h"
 
@@ -13,22 +12,12 @@ std::string ip_to_string(size_t ip) {
     return std::format("{:#010x}", ip);
 }
 
-std::string loc_to_string(std::variant<std::string, size_t> const& loc) {
-    return std::visit(
-        overloads{
-            [](size_t ip) { return ip_to_string(ip); },
-            [](std::string name) { return name; },
-        },
-        loc
-    );
-}
 }  // namespace
 
 namespace lama {
 
 void Const::print(std::ostream& os) const {
-    DCHECK(_value & 1);
-    os << "CONST\t" << (_value >> 1);
+    os << "CONST\t" << _value;
 }
 
 void String::print(std::ostream& os) const {
@@ -154,7 +143,11 @@ void BuiltinArray::print(std::ostream& os) const {
 }
 
 void Call::print(std::ostream& os) const {
-    os << "CALL\t" << loc_to_string(_callee) << " " << _argc;
+    os << "CALL\t" << ip_to_string(_callee) << " " << _argc;
+}
+
+void BuiltinCall::print(std::ostream& os) const {
+    os << "CALL\t" << _callee << " " << _argc;
 }
 
 void Binop::print(std::ostream& os) const {

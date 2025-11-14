@@ -2,7 +2,6 @@
 
 #include "instruction.h"
 #include "opcode.h"
-#include "runtime.h"
 
 namespace lama {
 
@@ -47,7 +46,7 @@ private:
 
 public:
     Const(int value)
-        : _value(BOX(value)) {}
+        : _value(value) {}
 
     inline int value() {
         return _value;
@@ -229,15 +228,25 @@ public:
     void emit_code(rv::Compiler* c) const override;
 };
 
+class BuiltinCall : public Instruction {
+    std::string _callee;
+    size_t _argc;
+
+    BuiltinCall(std::string function_name, int argc)
+        : _callee(std::move(function_name))
+        , _argc(argc) {}
+
+    void print(std::ostream&) const override;
+    void emit_code(rv::Compiler* c) const override;
+};
+
 class Call : public Instruction {
 private:
-    std::variant<std::string, size_t> _callee;
+    size_t _callee;
     size_t _argc;
 
 public:
-    Call(std::string function_name, int argc)
-        : _callee(std::move(function_name))
-        , _argc(argc) {}
+
     Call(size_t offset, int argc)
         : _callee(offset)
         , _argc(argc) {}
