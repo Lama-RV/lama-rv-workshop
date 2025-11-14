@@ -1,6 +1,7 @@
 #pragma once
 
 #include <format>
+#include <map>
 #include <optional>
 #include <ranges>
 #include <string>
@@ -8,6 +9,7 @@
 #include <vector>
 #include "code_buffer.h"
 #include "cpp.h"
+#include "register.h"
 #include "symb_stack.h"
 
 namespace lama::rv {
@@ -17,7 +19,6 @@ namespace lama::rv {
 class Compiler {
 public:
     std::string_view filename;
-    std::optional<FrameInfo> current_frame{};
     SymbolicStack st{};
     CodeBuffer cb;
     std::vector<std::string_view> strs{};
@@ -26,6 +27,8 @@ public:
     // Instruction address (in bytecode) to symbolic stack size mapping
     std::unordered_map<size_t, size_t> done;
     std::unordered_map<size_t, size_t> todo;
+
+    std::vector<size_t> closure_offsets;
 
     static std::string label_for_ip(size_t ip) {
         return std::format(".lbc_{:#x}", ip);
@@ -69,11 +72,14 @@ public:
 #endif
     }
 
-    void
-    compile_call(std::variant<std::string, size_t> callee, size_t argc, std::optional<int64_t> opt_arg = std::nullopt) {
+    void compile_call(
+        std::variant<std::string, size_t, rv::Register> callee,
+        size_t argc,
+        std::optional<int64_t> opt_arg = std::nullopt
+    ) {
         size_t add_arg = opt_arg.has_value();
         argc += add_arg;
-        size_t alignment = (current_frame->locals_count + st.spilled_count() + (argc > 8 ? argc - 8 : 0)) & 1;
+        size_t alignment = (st.current_frame->locals_count + st.spilled_count() + (argc > 8 ? argc - 8 : 0)) & 1;
         // Skip spilled registers
         cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -st.spilled_count() * rv::WORD_SIZE);
         // Save ra
@@ -89,31 +95,37 @@ public:
             cb.emit_sd(r, rv::Register::sp(), -rv::WORD_SIZE);
             cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -rv::WORD_SIZE);
         });
-        if (add_arg)
-            cb.emit_li(rv::Register::arg(0), *opt_arg);
-        for (auto i : std::views::iota(add_arg, argc) | std::views::take(8 - add_arg) | std::views::reverse) {
-            cb.symb_emit_mv(rv::Register::arg(i), st.pop());
-        }
         // Align sp to 16 bytes
         if (alignment) {
             cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -rv::WORD_SIZE);
         }
         // Store extra arguments on stack
-        for (auto _ : std::views::iota(0ul, argc) | std::views::drop(8) | std::views::reverse) {
-            cb.emit_sd(cb.to_reg(st.pop(), rv::Register::temp1()), rv::Register::sp(), -rv::WORD_SIZE);
-            cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -rv::WORD_SIZE);
+        for (auto _ : std::views::iota(0ul, argc) | std::views::drop(8)) {
+            cb.apply(st.pop(), [&](Register const& r) {
+                cb.emit_sd(r, rv::Register::sp(), -rv::WORD_SIZE);
+                cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -rv::WORD_SIZE);
+            });
+        }
+        if (add_arg)
+            cb.emit_li(rv::Register::arg(0), *opt_arg);
+        for (auto i : std::views::iota(add_arg, argc) | std::views::take(8 - add_arg) | std::views::reverse) {
+            cb.symb_emit_mv(rv::Register::arg(i), st.pop());
+        }
+        if (callee.index() == 2) {
+            cb.symb_emit_mv(rv::Register::closurep(), st.pop());
         }
         // Call function
-        cb.emit_call(std::visit(
+        std::visit(
             overloads{
-                [](std::string name) { return name; },
+                [this](std::string name) { cb.emit_call(name); },
                 [this](size_t offset) {
                     add_jump_target(offset, 0);
-                    return label_for_ip(offset);
+                    cb.emit_call(label_for_ip(offset));
                 },
+                [this](rv::Register reg) { cb.emit_jalr(reg); }
             },
             callee
-        ));
+        );
         // Drop extra arguments from stack
         if (argc > 8) {
             cb.emit_addi(rv::Register::sp(), rv::Register::sp(), (argc - 8) * rv::WORD_SIZE);
@@ -164,14 +176,25 @@ fname: .asciz "{}"
         ));
     }
 
-    std::string premain() {
+    constexpr std::string main_prologue() {
         return R"(
 sd fp, __gc_stack_bottom, t0
 la t0, globals)";
     }
 
-    std::string postmain() {
+    constexpr std::string main_epilogue() {
         return R"(srai a0, a0, 1)";
+    }
+
+    void footer() {
+        std::string arr;
+        for (auto it = closure_offsets.begin(); it != closure_offsets.end(); ++it) {
+            if (it != closure_offsets.begin()) {
+                arr.append(",");
+            }
+            arr.append(label_for_ip(*it));
+        }
+        cb.emit(std::format("closure_offsets: .dword {}", arr));
     }
 };
 }  // namespace lama::rv

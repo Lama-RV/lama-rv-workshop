@@ -1,28 +1,23 @@
 #include <glog/logging.h>
 #include <variant>
+#include "code_buffer.h"
 #include "compiler.h"
 #include "cpp.h"
 #include "instructions.h"
+#include "opcode.h"
 #include "register.h"
 #include "runtime.h"
+#include "symb_stack.h"
+
+#include <cassert>
 
 namespace lama {
 
 #define TODO() LOG(FATAL) << "Not implemented yet\t"
 
 void Const::emit_code(rv::Compiler* c) const {
-    auto loc = c->st.alloc();
-    switch (loc.type) {
-    case SymbolicLocationType::Memory: {
-        c->cb.emit_li(rv::Register::temp1(), _value);
-        c->cb.emit_sd(rv::Register::temp1(), rv::Register::fp(), -loc.number * rv::WORD_SIZE);
-        break;
-    }
-    case SymbolicLocationType::Register: {
-        c->cb.emit_li({(uint8_t)loc.number}, _value);
-        break;
-    }
-    }
+    assert(c->st.top >= 0 && c->st.top < 15);
+    c->cb.symb_emit_li(c->st.alloc(), BOX(_value));
 }
 
 void String::emit_code(rv::Compiler* c) const {
@@ -52,10 +47,11 @@ void Jump::emit_code(rv::Compiler* c) const {
 }
 
 void ConditionalJump::emit_code(rv::Compiler* c) const {
-    auto const reg = c->cb.to_reg(c->st.pop(), rv::Register::temp1());
-    c->cb.emit_srai(reg, reg, 1);
-    c->cb.emit_cj(_zero, reg, rv::Register::zero(), c->label_for_ip(_target));
-    c->add_jump_target(_target, c->st.top);
+    c->cb.apply(c->st.pop(), [&](const rv::Register& reg) {
+        c->cb.emit_srai(reg, reg, 1);
+        c->cb.emit_cj(_zero, reg, rv::Register::zero(), c->label_for_ip(_target));
+        c->add_jump_target(_target, c->st.top);
+    });
 }
 
 void Return::emit_code(rv::Compiler*) const {
@@ -76,12 +72,26 @@ void Elem::emit_code(rv::Compiler* c) const {
     c->compile_call("Belem", 2);
 }
 
-void Closure::emit_code(rv::Compiler*) const {
-    TODO();
+void Closure::emit_code(rv::Compiler* c) const {
+    c->add_jump_target(_offset, 0);
+    auto index = c->closure_offsets.size();
+    c->closure_offsets.emplace_back(_offset);
+    c->cb.symb_emit_li(c->st.alloc(), BOX(index * rv::WORD_SIZE));
+    c->compile_call("RVBclosure", 1, BOX(1));
 }
 
 void CBegin::emit_code(rv::Compiler* c) const {
-    Begin(std::format("closure@{:#010x}", offset), _argc, _locc).emit_code(c);
+    size_t loc_count = _locc + 1;
+    c->st.current_frame = rv::FrameInfo{.function_name = std::format("closure@{:#010x}", offset), .locals_count = loc_count, .args_count = _argc, .is_closure = true};
+    // Save callee-saved registers (fp is included)
+    rv::Register::saved_apply([c, loc_count](rv::Register const& r, int i) {
+        c->cb.emit_sd(r, rv::Register::sp(), -(i + loc_count) * rv::WORD_SIZE);
+    });
+
+    // Set new frame pointer
+    c->cb.emit_mv(rv::Register::fp(), rv::Register::sp());
+    // Save sp
+    c->cb.emit_addi(rv::Register::sp(), rv::Register::sp(), -(loc_count + 12) * rv::WORD_SIZE);
 }
 
 void Begin::emit_code(rv::Compiler* c) const {
@@ -95,9 +105,9 @@ void Begin::emit_code(rv::Compiler* c) const {
         },
         _id
     );
-    c->current_frame = rv::FrameInfo{.function_name = name, .locals_count = _locc, .args_count = _argc};
+    c->st.current_frame = rv::FrameInfo{.function_name = name, .locals_count = _locc, .args_count = _argc};
     if (name == "main") {
-        c->cb.emit(c->premain());
+        c->cb.emit(c->main_prologue());
         c->compile_call("__init", 0);
     }
     // Save callee-saved registers (fp is included)
@@ -112,8 +122,8 @@ void Begin::emit_code(rv::Compiler* c) const {
 }
 
 void End::emit_code(rv::Compiler* c) const {
-    DCHECK(c->current_frame.has_value()) << "no current frame in End instruction";
-    size_t _locc = c->current_frame->locals_count;
+    DCHECK(c->st.current_frame.has_value()) << "no current frame in End instruction";
+    size_t _locc = c->st.current_frame->locals_count;
     c->cb.symb_emit_mv(rv::Register::arg(0), c->st.pop());
     // Restore sp
     c->cb.emit_mv(rv::Register::sp(), rv::Register::fp());
@@ -121,15 +131,32 @@ void End::emit_code(rv::Compiler* c) const {
     rv::Register::saved_apply([c, _locc](rv::Register const& r, int i) {
         c->cb.emit_ld(r, rv::Register::sp(), -(i + _locc) * rv::WORD_SIZE);
     });
-    if (c->current_frame->function_name == "main") {
-        c->cb.emit(c->postmain());
+    if (c->st.current_frame->function_name == "main") {
+        c->cb.emit(c->main_epilogue());
     }
     // Return
     c->cb.emit_ret();
 }
 
-void CallClosure::emit_code(rv::Compiler*) const {
-    TODO();
+void CallClosure::emit_code(rv::Compiler* c) const {
+    // Get closure
+    auto cls_loc = c->st.peek(_argc);
+
+    // Get offset in closure array
+    auto loc_offset = c->st.alloc();
+    c->cb.symb_emit_ld(loc_offset, cls_loc, 0);
+    c->cb.symb_emit_srai(loc_offset, loc_offset, 1);
+
+    // Add closure array base
+    auto loc = c->st.alloc();
+    c->cb.symb_emit_la(loc, std::format("closure_offsets"));
+    c->cb.symb_emit_add(loc_offset, loc_offset, loc);
+    c->st.pop();
+    c->cb.symb_emit_ld(loc_offset, loc_offset, 0);
+    // Clear symb stack to maintain convention
+    c->cb.apply(c->st.pop(), [&](const rv::Register& callee_register) {
+        c->compile_call(callee_register, _argc);
+    });
 }
 
 void Tag::emit_code(rv::Compiler* c) const {
@@ -138,8 +165,8 @@ void Tag::emit_code(rv::Compiler* c) const {
     c->compile_call("Btag", 3);
 }
 
-void Array::emit_code(rv::Compiler*) const {
-    TODO();
+void Array::emit_code(rv::Compiler* c) const {
+    c->compile_call("Barray_patt", 1, BOX(_size));
 }
 
 void Fail::emit_code(rv::Compiler* c) const {
@@ -160,15 +187,15 @@ void Load::emit_code(rv::Compiler* c) const {
     };
 
     case Location::Local: {
-        DCHECK_LT(_loc.index, c->current_frame->locals_count) << "local index out of bounds";
+        DCHECK_LT(_loc.index, c->st.current_frame->locals_count) << "local index out of bounds";
         c->cb.symb_emit_ld(
-            c->st.alloc(), {SymbolicLocationType::Register, rv::Register::fp().regno}, -_loc.index * rv::WORD_SIZE
+            c->st.alloc(), {SymbolicLocationType::Register, rv::Register::fp().regno}, -(_loc.index + c->st.current_frame->is_closure) * rv::WORD_SIZE
         );
         break;
     };
 
     case Location::Arg: {
-        DCHECK_LT(_loc.index, c->current_frame->args_count) << "arg index out of bounds";
+        DCHECK_LT(_loc.index, c->st.current_frame->args_count) << "arg index out of bounds";
         if (_loc.index < 8) {
             c->cb.symb_emit_mv(c->st.alloc(), rv::Register::arg(_loc.index));
         } else {
@@ -194,17 +221,20 @@ void Store::emit_code(rv::Compiler* c) const {
     auto value = c->st.peek();
     switch (_loc.kind) {
     case Location::Global: {
+        DCHECK_LT(_loc.index, c->globals_count) << "global index out of bounds";
         c->cb.symb_emit_sd(
             value, {SymbolicLocationType::Register, rv::Register::gp().regno}, _loc.index * rv::WORD_SIZE
         );
         break;
     }
     case Location::Local:
+        DCHECK_LT(_loc.index, c->st.current_frame->locals_count) << "local index out of bounds";
         c->cb.symb_emit_sd(
-            value, {SymbolicLocationType::Register, rv::Register::fp().regno}, -_loc.index * rv::WORD_SIZE
+            value, {SymbolicLocationType::Register, rv::Register::fp().regno}, -(_loc.index + c->st.current_frame->is_closure) * rv::WORD_SIZE
         );
         break;
     case Location::Arg:
+        DCHECK_LT(_loc.index, c->st.current_frame->args_count) << "arg index out of bounds";
         if (_loc.index < 8) {
             c->cb.symb_emit_mv(value, rv::Register::arg(_loc.index));
         } else {
@@ -218,8 +248,30 @@ void Store::emit_code(rv::Compiler* c) const {
     }
 }
 
-void PatternInst::emit_code(rv::Compiler*) const {
-    TODO();
+void PatternInst::emit_code(rv::Compiler* c) const {
+    switch (_type) {
+    case Pattern::String:
+        c->compile_call("Bstring_patt", 2);
+        break;
+    case Pattern::StringTag:
+        c->compile_call("Bstring_tag_patt", 1);
+        break;
+    case Pattern::ArrayTag:
+        c->compile_call("Barray_tag_patt", 1);
+        break;
+    case Pattern::SExpTag:
+        c->compile_call("Bsexp_tag_patt", 1);
+        break;
+    case Pattern::Boxed:
+        c->compile_call("Bboxed_patt", 1);
+        break;
+    case Pattern::Unboxed:
+        c->compile_call("Bunboxed_patt", 1);
+        break;
+    case Pattern::ClosureTag:
+        c->compile_call("Bclosure_tag_patt", 1);
+        break;
+    }
 }
 
 void BuiltinLength::emit_code(rv::Compiler* c) const {
@@ -232,6 +284,10 @@ void BuiltinString::emit_code(rv::Compiler* c) const {
 
 void BuiltinArray::emit_code(rv::Compiler* c) const {
     c->compile_call("RVBarray", _len, BOX(_len));
+}
+
+void BuiltinCall::emit_code(rv::Compiler* c) const {
+    c->compile_call(_callee, _argc);
 }
 
 void Call::emit_code(rv::Compiler* c) const {

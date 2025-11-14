@@ -828,6 +828,19 @@ extern void *Bclosure (aint* args, aint bn) {
   return r->contents;
 }
 
+extern void *RVBclosure(aint bn, ...) {
+  aint           n = UNBOX(bn);
+  aint* args = malloc(n * sizeof(aint));
+  va_list ap;
+  va_start(ap, n);
+  for (aint j = 0; j < n; j++) {
+      args[j] = va_arg(ap, aint);
+  }
+  va_end(ap);
+  void* r = Bclosure(args, bn);
+  free(args);
+  return r;
+}
 
 extern void *Barray (aint* args, aint bn) {
   data   *r;
